@@ -6,7 +6,12 @@
 <meta name="theme-color" content="#BE2A47">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kundalik">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Ozish kundaligi</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600;700&display=swap">
@@ -198,6 +203,8 @@ nav.tabs button[aria-current="page"]{color:var(--accent);background:var(--accent
 .sheet{position:fixed;inset:0;z-index:20;background:rgba(10,15,20,.45);display:grid;align-items:end}
 .sheet .panel{background:var(--surface);border-radius:18px 18px 0 0;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;gap:14px;max-width:560px;width:100%;margin:0 auto}
 .sheet .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sheet .panel{max-height:100dvh;overflow-y:auto}
+.sheet .sep{border-top:1px solid var(--line);padding-top:14px;display:grid;gap:10px}
 
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 @media (max-width:360px){.form{grid-template-columns:1fr 1fr}.form .btn{grid-column:1/-1}}
@@ -246,7 +253,21 @@ nav.tabs button[aria-current="page"]{color:var(--accent);background:var(--accent
       <div class="field"><label for="setGoal">Oylik maqsad, kg</label><input id="setGoal" type="number" inputmode="decimal" step="0.1"></div>
     </div>
     <button class="btn wide" id="saveSettings">Saqlash</button>
-    <p class="small muted">Ma'lumotlar faqat sizga ko'rinadi va hisobingizga saqlanadi.</p>
+    <div class="sep" id="installBox" hidden>
+      <h3>Telefonga o'rnatish</h3>
+      <p class="small muted" id="installHint"></p>
+      <button class="btn ok wide" id="installBtn" hidden>Ilovani o'rnatish</button>
+    </div>
+    <div class="sep">
+      <h3>Zaxira nusxa</h3>
+      <p class="small muted" id="storeNote">Ma'lumotlar shu qurilmada saqlanadi. Telefon almashtirishdan oldin zaxira faylini yuklab oling.</p>
+      <div class="grid2">
+        <button class="btn ghost" id="exportBtn">Yuklab olish</button>
+        <button class="btn ghost" id="importBtn">Tiklash</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+      <p class="small muted" id="backupMsg" role="status"></p>
+    </div>
   </div>
 </div>
 
@@ -748,6 +769,9 @@ document.getElementById("openSettings").addEventListener("click",()=>{
   document.getElementById("setHeight").value=s.heightCm;
   document.getElementById("setStartKg").value=s.startKg;
   document.getElementById("setGoal").value=s.goalKg;
+  document.getElementById("storeNote").textContent=ref?"Ma'lumotlar hisobingizga saqlanadi. Xohlasangiz, zaxira faylini ham yuklab oling.":"Ma'lumotlar shu qurilmada saqlanadi. Telefon almashtirishdan oldin zaxira faylini yuklab oling.";
+  document.getElementById("backupMsg").textContent="";
+  updateInstall();
   sheet.hidden=false;
 });
 document.getElementById("closeSettings").addEventListener("click",()=>sheet.hidden=true);
@@ -762,6 +786,48 @@ document.getElementById("saveSettings").addEventListener("click",()=>{
   if(g>=40&&g<=250)s.goalKg=g;
   save();sheet.hidden=true;render();
 });
+
+/* backup */
+document.getElementById("exportBtn").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify(S,null,1)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download="kundalik-"+today()+".json";
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  document.getElementById("backupMsg").textContent="Zaxira fayli yuklab olindi.";
+});
+const importFile=document.getElementById("importFile");
+document.getElementById("importBtn").addEventListener("click",()=>{importFile.value="";importFile.click()});
+importFile.addEventListener("change",async()=>{
+  const f=importFile.files&&importFile.files[0], msg=document.getElementById("backupMsg");
+  if(!f)return;
+  let d=null;try{d=JSON.parse(await f.text())}catch(e){}
+  if(!d||d.v!==1||typeof d.days!=="object"){msg.textContent="Bu fayl kundalik zaxirasi emas.";return}
+  if(!confirm("Hozirgi ma'lumotlar zaxiradagisi bilan almashtirilsinmi?"))return;
+  S=Object.assign(blank(),d);fixState();save();render();
+  msg.textContent="Ma'lumotlar tiklandi.";
+});
+
+/* install (PWA) */
+let installEvt=null;
+const standalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+function updateInstall(){
+  const box=document.getElementById("installBox"), btn=document.getElementById("installBtn"), hint=document.getElementById("installHint");
+  if(standalone()||!("serviceWorker" in navigator)){box.hidden=true;return}
+  box.hidden=false;btn.hidden=!installEvt;
+  hint.textContent=installEvt?"Kundalikni bosh ekranga qo'shing: internet bo'lmasa ham ishlaydi."
+    :isIOS?"Safari'da «Ulashish» tugmasini bosing, so'ng «Bosh ekranga qo'shish»ni tanlang."
+    :"Brauzer menyusidan «Bosh ekranga qo'shish» yoki «Ilovani o'rnatish»ni tanlang.";
+}
+addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;updateInstall()});
+addEventListener("appinstalled",()=>{installEvt=null;updateInstall()});
+document.getElementById("installBtn").addEventListener("click",async()=>{
+  if(!installEvt)return;
+  installEvt.prompt();try{await installEvt.userChoice}catch(e){}
+  installEvt=null;updateInstall();
+});
+if("serviceWorker" in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});
 
 /* ---------- boot ---------- */
 try{const t=localStorage.getItem(KEY+"-tab");if(t&&["bugun","vazn","zal","menyu"].includes(t))tab=t}catch(e){}
