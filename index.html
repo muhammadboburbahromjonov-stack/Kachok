@@ -286,24 +286,34 @@ const WEEKS=[
   {steps:9500, focus:"Hammasini ushlab turing. Osh va somsa haftasiga 1 martadan.", gym:"3 marta zal, kardio 25 daqiqaga.", cardio:25, expect:"−0,5…−1 kg; o'lchov va surat oling"}
 ];
 
-const EX={
-  A:[
+const EX=[
+  {name:"Oyoq · Yelka",ex:[
     {id:"legpress",n:"Leg press (oyoq pressi)",s:3,r:"10–12",w:true},
-    {id:"latpull",n:"Yuqori blokni ko'krakka tortish",s:3,r:"10–12",w:true},
-    {id:"chestpress",n:"Trenajyorda ko'krak pressi",s:3,r:"10–12",w:true},
-    {id:"cablerow",n:"O'tirib pastki blok tortish",s:3,r:"10–12",w:true},
-    {id:"legcurl",n:"Trenajyorda son orqasini bukish",s:2,r:"12–15",w:true},
-    {id:"plank",n:"Planka",s:3,r:"20–30 son.",w:false}
-  ],
-  B:[
     {id:"gobletsq",n:"Gantel bilan skameykaga o'tirib-turish",s:3,r:"10",w:true},
-    {id:"rdl",n:"Gantel bilan rumincha tortish",s:3,r:"10",w:true},
-    {id:"inclinedb",n:"Qiya skameykada gantel pressi",s:3,r:"10",w:true},
+    {id:"legext",n:"Trenajyorda son oldini yozish",s:3,r:"12–15",w:true},
+    {id:"legcurl",n:"Trenajyorda son orqasini bukish",s:3,r:"12–15",w:true},
+    {id:"shoulder",n:"Trenajyorda yelka pressi",s:3,r:"10–12",w:true},
+    {id:"latraise",n:"Gantelni yon tomonga ko'tarish",s:3,r:"12–15",w:true}
+  ]},
+  {name:"Qanot · Qo'l oldi",ex:[
+    {id:"latpull",n:"Yuqori blokni ko'krakka tortish",s:3,r:"10–12",w:true},
+    {id:"cablerow",n:"O'tirib pastki blok tortish",s:3,r:"10–12",w:true},
     {id:"dbrow",n:"Bir qo'lda gantel tortish",s:3,r:"10",w:true},
-    {id:"shoulder",n:"Trenajyorda yelka pressi",s:2,r:"12",w:true},
+    {id:"dbcurl",n:"Gantel bilan qo'l oldini bukish (biseps)",s:3,r:"10–12",w:true},
+    {id:"hammer",n:"Bolg'a usulida gantel bukish",s:2,r:"12",w:true},
     {id:"deadbug",n:"Dead bug (chalqancha yotib)",s:3,r:"10",w:false}
-  ]
-};
+  ]},
+  {name:"Ko'krak · Qo'l orqasi",ex:[
+    {id:"chestpress",n:"Trenajyorda ko'krak pressi",s:3,r:"10–12",w:true},
+    {id:"inclinedb",n:"Qiya skameykada gantel pressi",s:3,r:"10",w:true},
+    {id:"pecdeck",n:"Trenajyorda qo'llarni birlashtirish (babochka)",s:3,r:"12",w:true},
+    {id:"pushdown",n:"Blokda qo'l orqasini yozish (triseps)",s:3,r:"12",w:true},
+    {id:"ohext",n:"Gantelni bosh orqasidan yozish",s:2,r:"12",w:true},
+    {id:"plank",n:"Planka",s:3,r:"20–30 son.",w:false}
+  ]}
+];
+// Program shipped before the user's own split; saved copies of it are upgraded once.
+const OLD_DEFAULT=["legpress,latpull,chestpress,cablerow,legcurl,plank","gobletsq,rdl,inclinedb,dbrow,shoulder,deadbug","legpress,latpull,chestpress,cablerow,legcurl,plank"];
 
 const SHOP=[
   ["Oqsil",["Tuxum (kuniga 6 ta)","Tovuq ko'kragi yoki son (golen)","Yog'siz mol go'shti","Baliq","Protein: whey izolyat"]],
@@ -325,8 +335,9 @@ const fmtKg=n=>(Math.round(n*10)/10).toLocaleString("ru-RU",{minimumFractionDigi
 const fmtInt=n=>n.toLocaleString("ru-RU");
 
 /* ---------- state ---------- */
-function defaultProgram(){const c=a=>a.map(e=>Object.assign({},e));return[{name:"1-kun",ex:c(EX.A)},{name:"2-kun",ex:c(EX.B)},{name:"3-kun",ex:c(EX.A)}]}
-function fixState(){if(!Array.isArray(S.program)||!S.program.length)S.program=defaultProgram()}
+function defaultProgram(){return EX.map(d=>({name:d.name,ex:d.ex.map(e=>Object.assign({},e))}))}
+function isOldDefault(p){return p.length===3&&p.every((d,i)=>d.name===(i+1)+"-kun"&&d.ex.map(e=>e.id).join()===OLD_DEFAULT[i])}
+function fixState(){if(!Array.isArray(S.program)||!S.program.length||isOldDefault(S.program))S.program=defaultProgram()}
 function blank(){return{v:1,updatedAt:0,program:defaultProgram(),settings:{start:"2026-10-30",startKg:130,goalKg:125,heightCm:186},days:{},weights:{},sets:{},lastKg:{},shop:{}}}
 let S=blank();
 try{const raw=localStorage.getItem(KEY);if(raw){const p=JSON.parse(raw);if(p&&p.v===1)S=Object.assign(blank(),p)}}catch(e){}
@@ -555,14 +566,21 @@ const POSES={
   inclinedb:()=>FLOOR+eqp([[24,34],[54,72],[70,72]])+eqp([[60,72],[60,85]],3)+figure({h:[28,38],s:[34,46],hp:[52,68],k:[70,64],f:[72,84],e:[42,32],a:[40,18]})+dbell(40,16,false)+arrow(58,32,58,10),
   dbrow:()=>FLOOR+eqp([[28,62],[80,62]])+eqp([[34,62],[34,85]],3)+eqp([[74,62],[74,85]],3)+figure({h:[26,40],s:[36,44],hp:[70,46],k:[66,60],f:[80,60],k2:[82,64],f2:[86,84],e:[54,36],a:[50,52],e2:[38,54],a2:[38,60]})+dbell(50,54,false)+arrow(62,56,62,36),
   shoulder:()=>FLOOR+eqp([[40,22],[40,66],[62,66]])+eqp([[50,66],[50,85]],3)+eqp([[50,16],[64,16]],5)+figure({h:[47,29],s:[46,38],hp:[46,62],k:[66,62],f:[68,84],e:[58,34],a:[56,17]})+arrow(80,36,80,12),
-  deadbug:()=>FLOOR+figure({h:[18,74],s:[28,78],hp:[60,78],k:[62,58],f:[78,58],k2:[82,76],f2:[102,76],e:[30,64],a:[31,50],e2:[18,70],a2:[8,72]})+arrow(96,64,106,70)
+  deadbug:()=>FLOOR+figure({h:[18,74],s:[28,78],hp:[60,78],k:[62,58],f:[78,58],k2:[82,76],f2:[102,76],e:[30,64],a:[31,50],e2:[18,70],a2:[8,72]})+arrow(96,64,106,70),
+  legext:()=>FLOOR+eqp([[38,26],[38,66],[62,66]])+eqp([[50,66],[50,85]],3)+`<circle cx="88" cy="58" r="4.5" fill="var(--muted)"/>`+figure({h:[45,29],s:[44,38],hp:[44,62],k:[64,62],f:[84,56],e:[48,50],a:[56,62]})+arrow(98,74,104,52),
+  latraise:()=>FLOOR+figure({h:[60,20],s:[60,29],hp:[60,56],k:[56,70],f:[54,84],k2:[64,70],f2:[66,84],e:[46,33],a:[33,35],e2:[74,33],a2:[87,35]})+dbell(31,35,true)+dbell(89,35,true)+arrow(22,56,22,34)+arrow(98,56,98,34),
+  dbcurl:()=>FLOOR+figure({h:[56,20],s:[56,29],hp:[56,56],k:[58,70],f:[56,84],e:[57,45],a:[70,35]})+dbell(71,34,false)+arrow(86,60,86,34),
+  hammer:()=>FLOOR+figure({h:[56,20],s:[56,29],hp:[56,56],k:[58,70],f:[56,84],e:[57,45],a:[70,35]})+dbell(71,34,true)+arrow(86,60,86,34),
+  pecdeck:()=>FLOOR+eqp([[38,28],[38,48]],5)+eqp([[82,28],[82,48]],5)+eqp([[60,16],[60,64]],3)+figure({h:[60,22],s:[60,31],hp:[60,60],k:[50,72],f:[50,84],k2:[70,72],f2:[70,84],e:[46,38],a:[55,30],e2:[74,38],a2:[65,30]})+arrow(18,38,32,38)+arrow(102,38,88,38),
+  pushdown:()=>FLOOR+eqp([[98,4],[98,85]],4)+eqp([[98,10],[73,58]],1.5)+eqp([[67,58],[79,58]],5)+figure({h:[56,20],s:[56,29],hp:[56,56],k:[58,70],f:[56,84],e:[60,44],a:[72,58]})+arrow(86,44,86,70),
+  ohext:()=>FLOOR+eqp([[30,66],[70,66]])+eqp([[38,66],[38,85]],3)+eqp([[64,66],[64,85]],3)+figure({h:[50,29],s:[50,38],hp:[50,62],k:[72,62],f:[74,84],e:[54,16],a:[42,26]})+dbell(41,28,true)+arrow(24,38,24,12)
 };
 function exArt(id){
   const f=POSES[id];
   const inner=f?f():`<rect x="34" y="38" width="52" height="8" rx="3" fill="var(--muted)"/><rect x="24" y="28" width="12" height="28" rx="3" fill="var(--accent)"/><rect x="84" y="28" width="12" height="28" rx="3" fill="var(--accent)"/>`;
   return `<span class="art" aria-hidden="true"><svg viewBox="0 0 120 90">${inner}</svg></span>`;
 }
-const VQ={legpress:"жим ногами в тренажере техника",latpull:"тяга верхнего блока к груди техника",chestpress:"жим от груди в тренажере техника",cablerow:"тяга нижнего блока сидя техника",legcurl:"сгибание ног в тренажере лежа техника",plank:"планка на локтях техника",gobletsq:"гоблет приседания на скамью техника",rdl:"румынская тяга с гантелями техника",inclinedb:"жим гантелей на наклонной скамье техника",dbrow:"тяга гантели одной рукой в наклоне техника",shoulder:"жим на плечи в тренажере сидя техника",deadbug:"упражнение мертвый жук техника"};
+const VQ={legpress:"жим ногами в тренажере техника",latpull:"тяга верхнего блока к груди техника",chestpress:"жим от груди в тренажере техника",cablerow:"тяга нижнего блока сидя техника",legcurl:"сгибание ног в тренажере лежа техника",plank:"планка на локтях техника",gobletsq:"гоблет приседания на скамью техника",rdl:"румынская тяга с гантелями техника",inclinedb:"жим гантелей на наклонной скамье техника",dbrow:"тяга гантели одной рукой в наклоне техника",shoulder:"жим на плечи в тренажере сидя техника",deadbug:"упражнение мертвый жук техника",legext:"разгибание ног в тренажере техника",latraise:"махи гантелями в стороны техника",dbcurl:"подъем гантелей на бицепс техника",hammer:"молотки с гантелями техника",pecdeck:"сведение рук в тренажере бабочка техника",pushdown:"разгибание рук на блоке трицепс техника",ohext:"французский жим гантелью сидя техника"};
 function vidUrl(e){return "https://www.youtube.com/results?search_query="+encodeURIComponent(VQ[e.id]||(e.n+" texnika"))}
 
 const PLATE=`<circle cx="40" cy="44" r="30" fill="var(--plate)" stroke="var(--line)" stroke-width="2"/><circle cx="40" cy="44" r="22" fill="none" stroke="var(--line)" stroke-width="1"/>`;
