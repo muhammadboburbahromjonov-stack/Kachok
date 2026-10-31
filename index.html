@@ -287,13 +287,14 @@ const WEEKS=[
   {steps:9500, focus:"Hammasini ushlab turing. Osh va somsa haftasiga 1 martadan.", gym:"3 marta zal, kardio 25 daqiqaga.", cardio:25, expect:"−0,5…−1 kg; o'lchov va surat oling"}
 ];
 
-// Volinkin program in the order of the trainer's videos (no leg exercises there, so legs keep the earlier set).
+// Volinkin program in the order of the trainer's videos.
 const EX=[
   {name:"Oyoq",ex:[
-    {id:"legpress",n:"Leg press (oyoq pressi)",s:3,r:"10–12",w:true},
-    {id:"gobletsq",n:"Gantel bilan skameykaga o'tirib-turish",s:3,r:"10",w:true},
-    {id:"legext",n:"Trenajyorda son oldini yozish",s:3,r:"12–15",w:true},
-    {id:"legcurl",n:"Trenajyorda son orqasini bukish",s:3,r:"12–15",w:true}
+    {id:"legext",n:"Trenajyorda son oldini yozish",s:5,r:"15",w:true,h:"Avval 5×15 bitta vaznda, keyin 5×15·12·10·8·6: vaznni oshirib, takrorni kamaytirib"},
+    {id:"legpress",n:"O'tirib oyoq pressi (leg press)",s:5,r:"15",w:true,h:"Vaznni oshiring, takror soni o'zgarmaydi. O'rniga oddiy yotib leg press qilsa ham bo'ladi"},
+    {id:"legcurl",n:"Yotib son orqasini bukish",s:5,r:"15",w:true,h:"Vaznni oshiring, takror soni o'zgarmaydi"},
+    {id:"rdl",n:"Gantel bilan rumincha tortish",s:4,r:"15",w:true,h:"Bitta vazn bilan, tizzani bukmasdan"},
+    {id:"calf",n:"Turib boldirni ko'tarish",s:5,r:"15",w:true}
   ]},
   {name:"Qanot · Qo'l oldi",ex:[
     {id:"leverrow",n:"Richagli trenajyorda tortish",s:5,r:"15",w:true,h:"Bitta vazn bilan. Gorizontal tortiladi; boshning orqasiga tortsa ham bo'ladi"},
@@ -322,7 +323,8 @@ const EX=[
 const OLD_DEFAULTS=[
   ["legpress,latpull,chestpress,cablerow,legcurl,plank","gobletsq,rdl,inclinedb,dbrow,shoulder,deadbug","legpress,latpull,chestpress,cablerow,legcurl,plank"],
   ["legpress,gobletsq,legext,legcurl,shoulder,latraise","latpull,cablerow,dbrow,dbcurl,hammer,deadbug","chestpress,inclinedb,pecdeck,pushdown,ohext,plank"],
-  ["legpress,gobletsq,legext,legcurl,shoulder,uprightrow,reardelt,deltset","leverrow,rowmachine,narrowpull,cablerow,handlepull,inclinerow,preacher,cablecurl","bench,pecdeck,crossover,lyingext,pushdown,onearmpush"]
+  ["legpress,gobletsq,legext,legcurl,shoulder,uprightrow,reardelt,deltset","leverrow,rowmachine,narrowpull,cablerow,handlepull,inclinerow,preacher,cablecurl","bench,pecdeck,crossover,lyingext,pushdown,onearmpush"],
+  ["legpress,gobletsq,legext,legcurl","leverrow,rowmachine,narrowpull,cablerow,handlepull,preacher,cablecurl","bench,pecdeck,crossover,shoulder,uprightrow,inclinerear,reardelt,deltset,lyingext,pushdown,onearmpush"]
 ];
 
 const SHOP=[
@@ -589,6 +591,7 @@ const POSES={
   preacher:()=>FLOOR+eqp([[52,58],[76,46]],5)+eqp([[64,52],[64,85]],3)+eqp([[28,66],[48,66]])+eqp([[38,66],[38,85]],3)+figure({h:[42,30],s:[44,39],hp:[38,64],k:[56,64],f:[58,84],e:[68,50],a:[80,34]})+dbell(81,32,false)+arrow(98,58,96,30),
   bench:()=>FLOOR+eqp([[16,66],[86,66]])+eqp([[26,66],[26,85]],3)+eqp([[78,66],[78,85]],3)+figure({h:[22,58],s:[32,61],hp:[66,62],k:[84,56],f:[94,84],e:[40,48],a:[36,32]})+`<circle cx="36" cy="27" r="7" fill="none" stroke="var(--accent)" stroke-width="3"/>`+arrow(56,42,56,16),
   lyingext:()=>FLOOR+eqp([[16,66],[86,66]])+eqp([[26,66],[26,85]],3)+eqp([[78,66],[78,85]],3)+figure({h:[22,58],s:[32,61],hp:[66,62],k:[84,56],f:[94,84],e:[36,36],a:[22,44]})+dbell(20,46,true)+arrow(10,40,26,20),
+  calf:()=>FLOOR+eqp([[38,80],[74,80]],4)+eqp([[44,25],[68,25]],5)+eqp([[90,10],[90,85]],4)+eqp([[68,25],[90,25]],2)+figure({h:[56,16],s:[56,26],hp:[56,53],k:[57,67],f:[60,79],e:[48,34],a:[50,25]})+arrow(80,72,80,50),
   ohext:()=>FLOOR+eqp([[30,66],[70,66]])+eqp([[38,66],[38,85]],3)+eqp([[64,66],[64,85]],3)+figure({h:[50,29],s:[50,38],hp:[50,62],k:[72,62],f:[74,84],e:[54,16],a:[42,26]})+dbell(41,28,true)+arrow(24,38,24,12)
 };
 const POSE_ALIAS={inclinerear:"inclinerow",leverrow:"latpull",rowmachine:"cablerow",narrowpull:"latpull",handlepull:"latpull",cablecurl:"dbcurl",crossover:"pecdeck",onearmpush:"pushdown",deltset:"latraise"};
@@ -597,7 +600,7 @@ function exArt(id){
   const inner=f?f():`<rect x="34" y="38" width="52" height="8" rx="3" fill="var(--muted)"/><rect x="24" y="28" width="12" height="28" rx="3" fill="var(--accent)"/><rect x="84" y="28" width="12" height="28" rx="3" fill="var(--accent)"/>`;
   return `<span class="art" aria-hidden="true"><svg viewBox="0 0 120 90">${inner}</svg></span>`;
 }
-const VQ={legpress:"жим ногами в тренажере техника",latpull:"тяга верхнего блока к груди техника",chestpress:"жим от груди в тренажере техника",cablerow:"тяга нижнего блока сидя техника",legcurl:"сгибание ног в тренажере лежа техника",plank:"планка на локтях техника",gobletsq:"гоблет приседания на скамью техника",rdl:"румынская тяга с гантелями техника",inclinedb:"жим гантелей на наклонной скамье техника",dbrow:"тяга гантели одной рукой в наклоне техника",shoulder:"жим на плечи в тренажере сидя техника",deadbug:"упражнение мертвый жук техника",uprightrow:"тяга гантелей к подбородку техника",reardelt:"обратная бабочка задняя дельта техника",deltset:"махи гантелями вперед в стороны в наклоне",leverrow:"рычажная тяга хаммер техника",rowmachine:"тяга в рычажном тренажере с упором в грудь техника",narrowpull:"рычажная вертикальная тяга узким хватом",handlepull:"тяга верхнего блока одной рукояткой техника",inclinerow:"тяга гантелей лежа на наклонной скамье техника",inclinerear:"разведение гантелей лежа на наклонной скамье задняя дельта",preacher:"сгибание рук в тренажере скотта техника",cablecurl:"сгибание рук на нижнем блоке в приседе",bench:"жим штанги лежа техника",crossover:"сведение рук в кроссовере техника",lyingext:"французский жим гантелями лежа техника",onearmpush:"разгибание одной руки на блоке трицепс техника",legext:"разгибание ног в тренажере техника",latraise:"махи гантелями в стороны техника",dbcurl:"подъем гантелей на бицепс техника",hammer:"молотки с гантелями техника",pecdeck:"сведение рук в тренажере бабочка техника",pushdown:"разгибание рук на блоке трицепс техника",ohext:"французский жим гантелью сидя техника"};
+const VQ={legpress:"жим ногами в тренажере техника",latpull:"тяга верхнего блока к груди техника",chestpress:"жим от груди в тренажере техника",cablerow:"тяга нижнего блока сидя техника",legcurl:"сгибание ног в тренажере лежа техника",plank:"планка на локтях техника",gobletsq:"гоблет приседания на скамью техника",rdl:"румынская тяга с гантелями техника",inclinedb:"жим гантелей на наклонной скамье техника",dbrow:"тяга гантели одной рукой в наклоне техника",shoulder:"жим на плечи в тренажере сидя техника",deadbug:"упражнение мертвый жук техника",calf:"подъем на носки стоя в тренажере техника",uprightrow:"тяга гантелей к подбородку техника",reardelt:"обратная бабочка задняя дельта техника",deltset:"махи гантелями вперед в стороны в наклоне",leverrow:"рычажная тяга хаммер техника",rowmachine:"тяга в рычажном тренажере с упором в грудь техника",narrowpull:"рычажная вертикальная тяга узким хватом",handlepull:"тяга верхнего блока одной рукояткой техника",inclinerow:"тяга гантелей лежа на наклонной скамье техника",inclinerear:"разведение гантелей лежа на наклонной скамье задняя дельта",preacher:"сгибание рук в тренажере скотта техника",cablecurl:"сгибание рук на нижнем блоке в приседе",bench:"жим штанги лежа техника",crossover:"сведение рук в кроссовере техника",lyingext:"французский жим гантелями лежа техника",onearmpush:"разгибание одной руки на блоке трицепс техника",legext:"разгибание ног в тренажере техника",latraise:"махи гантелями в стороны техника",dbcurl:"подъем гантелей на бицепс техника",hammer:"молотки с гантелями техника",pecdeck:"сведение рук в тренажере бабочка техника",pushdown:"разгибание рук на блоке трицепс техника",ohext:"французский жим гантелью сидя техника"};
 function vidUrl(e){return "https://www.youtube.com/results?search_query="+encodeURIComponent(VQ[e.id]||(e.n+" texnika"))}
 
 const PLATE=`<circle cx="40" cy="44" r="30" fill="var(--plate)" stroke="var(--line)" stroke-width="2"/><circle cx="40" cy="44" r="22" fill="none" stroke="var(--line)" stroke-width="1"/>`;
