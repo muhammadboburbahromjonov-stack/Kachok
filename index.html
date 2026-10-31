@@ -102,12 +102,9 @@ p{margin:0}
 .chk .t{font-weight:600;display:block}
 .chk .h{font-size:13px;color:var(--muted);display:block}
 
-.water{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
-.cups{display:flex;flex-wrap:wrap;gap:5px}
-.cup{width:16px;height:22px;border-radius:3px 3px 6px 6px;border:2px solid var(--line)}
-.cup.f{background:var(--ok);border-color:var(--ok)}
-.stepper{display:flex;gap:6px}
-.stepper button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);font-size:20px;font-weight:600;line-height:1}
+.liters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.liters button{height:56px;border-radius:12px;border:2px solid var(--line);background:none;font-weight:700;font-size:15px;color:var(--muted)}
+.liters button[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--surface)}
 
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--surface-2);color:var(--muted)}
 .pill.ok{background:var(--ok-soft);color:var(--ok)}
@@ -288,6 +285,8 @@ const esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 
 function day(s){if(!S.days[s])S.days[s]={c:{},w:0};return S.days[s]}
 function peekDay(s){return S.days[s]||{c:{},w:0}}
+// Water is marked in whole litres (d.l); older days counted 250 ml glasses in d.w.
+function litres(d){return d.l!=null?d.l:Math.min(5,Math.round((d.w||0)/4))}
 function save(){
   S.updatedAt=Date.now();
   try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
@@ -331,7 +330,7 @@ function items(s){
 }
 function scoreOf(s){
   const its=items(s), d=peekDay(s);
-  const done=its.filter(i=>d.c[i.id]).length+((d.w||0)>=12?1:0);
+  const done=its.filter(i=>d.c[i.id]).length+(litres(d)>=3?1:0);
   return {done,total:its.length+1};
 }
 function drinkStreak(){
@@ -367,7 +366,7 @@ function renderToday(){
   }
   const target=w===1?2:3, wg=weekGym(cur);
   const streak=drinkStreak();
-  let cups="";for(let i=0;i<16;i++)cups+=`<span class="cup${i<(d.w||0)?" f":""}"></span>`;
+  const L=litres(d);
   el.innerHTML=`
     <div class="card">
       <div class="score">
@@ -392,13 +391,9 @@ function renderToday(){
     ${w>=1&&w<=4?`<div class="card focus"><div class="eyebrow">${w}-hafta diqqati</div><p><b>${p.focus}</b></p><p class="small">Mashq: ${p.gym} Kutilgan natija: ${p.expect}.</p></div>`:""}
     <div class="card"><div class="checks">${its.map(i=>`<button class="chk" data-chk="${i.id}" aria-pressed="${!!d.c[i.id]}"><span class="box">${CHECK}</span><span><span class="t">${i.t}</span><span class="h">${i.h}</span></span></button>`).join("")}</div></div>
     <div class="card">
-      <div class="card-head"><h3>Suv</h3><span class="small muted num">${((d.w||0)*0.25).toLocaleString("ru-RU")} / 3–5 l</span></div>
-      <div class="water">
-        <span class="bignum" style="font-size:28px">${d.w||0}</span>
-        <div class="cups" aria-hidden="true">${cups}</div>
-        <div class="stepper"><button data-water="-1" aria-label="Bir stakan kamaytirish">−</button><button data-water="1" aria-label="Bir stakan qo'shish">+</button></div>
-      </div>
-      <p class="small muted">Har stakan 250 ml. 12 stakanda (3 l) odat bajarilgan hisoblanadi.</p>
+      <div class="card-head"><h3>Suv</h3><span class="small muted num">${L} / 5 l</span></div>
+      <div class="liters" role="group" aria-label="Ichilgan suv, litr">${[1,2,3,4,5].map(i=>`<button data-litre="${i}" aria-pressed="${i<=L}">${i} l</button>`).join("")}</div>
+      <p class="small muted">Har belgi 1 litr. 3 litrdan keyin odat bajarilgan hisoblanadi.</p>
     </div>
   `;
 }
@@ -534,7 +529,7 @@ function renderMenu(){
       <div>${MEALS.map(m=>`<div class="meal">${foodArt(m.k)}<div style="display:grid;gap:3px;min-width:0"><span class="tag">${m.tag}</span><b>${m.t}</b><span class="small">${m.d}</span><span class="mm">${m.m}</span></div></div>`).join("")}</div>
     </div>
     <div class="card">
-      <div class="meal" style="border-top:0;padding-top:0">${foodArt("water")}<div style="display:grid;gap:3px"><span class="tag">Suv</span><b>Kuniga kamida 3, ko'pi bilan 5 litr</b><span class="small muted">«Bugun» bo'limida stakanlab hisoblang.</span></div></div>
+      <div class="meal" style="border-top:0;padding-top:0">${foodArt("water")}<div style="display:grid;gap:3px"><span class="tag">Suv</span><b>Kuniga kamida 3, ko'pi bilan 5 litr</b><span class="small muted">«Bugun» bo'limida litrlab belgilang.</span></div></div>
       <div class="meal">${foodArt("vit")}<div style="display:grid;gap:3px"><span class="tag">Vitaminlar</span><b>Sink, D3 (10 000 birlik), C vitamini</b><span class="small">Nonushtadan yarim soat keyin. Yotishdan oldin Kardioleks, 1 dona.</span><span class="small muted">D vitaminingiz tahlilda normada (34,2). 10 000 birlikni qancha muddat ichishni endokrinolog bilan aniqlang.</span></div></div>
     </div>
     <div class="card">
@@ -594,8 +589,8 @@ document.querySelector("main").addEventListener("click",e=>{
   if(go){cur=go.dataset.go;render();return}
   const c=e.target.closest("[data-chk]");
   if(c){const d=day(cur);d.c[c.dataset.chk]=!d.c[c.dataset.chk];save();render();return}
-  const wb=e.target.closest("[data-water]");
-  if(wb){const d=day(cur);d.w=Math.max(0,Math.min(20,(d.w||0)+Number(wb.dataset.water)));save();render();return}
+  const lb=e.target.closest("[data-litre]");
+  if(lb){const d=day(cur),n=+lb.dataset.litre;d.l=litres(d)===n?n-1:n;save();render();return}
   const del=e.target.closest("[data-del]");
   if(del){const k=del.dataset.del;if(armedDel===k){delete S.weights[k];armedDel=null;save()}else armedDel=k;render();return}
   const dt=e.target.closest("[data-dtype]");
