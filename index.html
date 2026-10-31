@@ -161,7 +161,7 @@ ol.plain{margin:0;padding-left:22px;display:grid;gap:6px}
 
 /* tabbar */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-nav.tabs .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding-block:6px}
+nav.tabs .wrap{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding-block:6px}
 nav.tabs button{border:0;background:none;display:grid;justify-items:center;gap:2px;padding:6px 0;border-radius:10px;font-size:12px;font-weight:600;color:var(--muted)}
 nav.tabs svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 nav.tabs button[aria-current="page"]{color:var(--accent);background:var(--accent-soft)}
@@ -171,6 +171,17 @@ nav.tabs button[aria-current="page"]{color:var(--accent);background:var(--accent
 .sheet{position:fixed;inset:0;z-index:20;background:rgba(10,15,20,.45);display:grid;align-items:end}
 .sheet .panel{background:var(--surface);border-radius:18px 18px 0 0;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;gap:14px;max-width:560px;width:100%;margin:0 auto}
 .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bandgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.bandphoto img{display:block;width:100%;max-height:420px;object-fit:contain;border-radius:12px;background:var(--surface-2);cursor:zoom-in}
+.bandphoto img.big{max-height:none;cursor:zoom-out}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+.btnrow .btn{flex:1}
+.bars{display:flex;align-items:flex-end;gap:3px;height:96px}
+.bars span{flex:1;min-width:0;background:var(--surface-2);border-radius:4px 4px 0 0;position:relative}
+.bars span.on{background:var(--ok)}
+.barlbl{display:flex;gap:3px;font-size:10px;color:var(--muted);text-align:center}
+.barlbl span{flex:1;min-width:0;overflow:hidden}
+.tips{margin:0;padding-left:18px;display:grid;gap:6px}
 .mgrid .chk[aria-pressed="true"] .t{color:var(--ink);text-decoration:none}
 .sheet .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .sheet .panel{max-height:100dvh;overflow-y:auto}
@@ -201,6 +212,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent);background:var(--accent
     <section id="tab-vazn" class="stack" hidden></section>
     <section id="tab-zal" class="stack" hidden></section>
     <section id="tab-menyu" class="stack" hidden></section>
+    <section id="tab-hisobot" class="stack" hidden></section>
   </div>
 </main>
 
@@ -210,6 +222,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent);background:var(--accent
     <button data-tab="menyu"><svg viewBox="0 0 24 24"><path d="M4 3v8a3 3 0 0 0 3 3v7M7 3v6M10 3v8a3 3 0 0 1-3 3"/><path d="M17 21V3c-2 1-3 4-3 8h3"/></svg>Menyu</button>
     <button data-tab="zal"><svg viewBox="0 0 24 24"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg>Zal</button>
     <button data-tab="vazn"><svg viewBox="0 0 24 24"><path d="M3 17l5-5 4 4 8-8"/><path d="M14 8h6v6"/></svg>Vazn</button>
+    <button data-tab="hisobot"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Hisobot</button>
   </div>
 </nav>
 
@@ -285,6 +298,23 @@ const esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 
 function day(s){if(!S.days[s])S.days[s]={c:{},w:0};return S.days[s]}
 function peekDay(s){return S.days[s]||{c:{},w:0}}
+// Bracelet (Mi Band) numbers typed in after the gym, per day in d.band.
+const BAND=[["steps","Qadam","",1],["kcal","Kaloriya","kkal",1],["min","Mashg'ulot","daq",1],["hr","O'rtacha puls","zarba/daq",1],["sleep","Uyqu","soat",0.1]];
+// Bracelet screenshots live in IndexedDB (too big for localStorage), keyed by date.
+const PHOTOS=(()=>{
+  let dbp=null;
+  const open=()=>dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open("kundalik-photos",1);r.onupgradeneeded=()=>r.result.createObjectStore("p");r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}));
+  const run=(mode,fn)=>open().then(db=>new Promise((res,rej)=>{const t=db.transaction("p",mode);let out;fn(t.objectStore("p"),v=>out=v);t.oncomplete=()=>res(out);t.onerror=()=>rej(t.error)}));
+  return {
+    get:k=>run("readonly",(st,set)=>{const q=st.get(k);q.onsuccess=()=>set(q.result)}),
+    put:(k,v)=>run("readwrite",st=>st.put(v,k)),
+    del:k=>run("readwrite",st=>st.delete(k)),
+    all:()=>run("readonly",(st,set)=>{const out={};set(out);st.openCursor().onsuccess=e=>{const c=e.target.result;if(c){out[c.key]=c.value;c.continue()}}})
+  };
+})();
+function shrinkImage(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),img=new Image();
+  img.onload=()=>{const sc=Math.min(1,1400/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",0.8))};
+  img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("image"))};img.src=u})}
 // Water is marked in whole litres (d.l); older days counted 250 ml glasses in d.w.
 function litres(d){return d.l!=null?d.l:Math.min(5,Math.round((d.w||0)/4))}
 function save(){
@@ -488,7 +518,7 @@ const foodArt=k=>`<span class="fimg" aria-hidden="true"><svg viewBox="0 0 80 80"
 
 /* ---------- render: gym ---------- */
 function renderGym(){
-  const el=document.getElementById("tab-zal"), sel=peekDay(cur).mg||[], ws=weekStart(cur);
+  const el=document.getElementById("tab-zal"), sel=peekDay(cur).mg||[], ws=weekStart(cur), band=peekDay(cur).band||{};
   let week="";
   for(let i=0;i<7;i++){const s=addDays(ws,i);if(s>today())break;const d=peekDay(s),n=mgNames(d)||(isGym(d)?"Zal":"");
     week+=`<span>${WSHORT[parse(s).getDay()]}, ${shortDate(s)}</span><b class="${n?"":"muted"}">${n?esc(n):"—"}</b>`}
@@ -498,10 +528,22 @@ function renderGym(){
       <div class="mgrid">${MUSCLES.map(([k,t])=>`<button class="chk" data-mg="${k}" aria-pressed="${sel.includes(k)}"><span class="box">${CHECK}</span><span><span class="t">${t}</span></span></button>`).join("")}</div>
     </div>
     <div class="card">
+      <div class="card-head"><h3>Bilaguzuk ma'lumotlari</h3><span class="small muted">Mi Band</span></div>
+      <div class="bandphoto" id="bandPhoto" hidden></div>
+      <div class="btnrow">
+        <button class="btn ghost" data-photo="add">${band.photo?"Rasmni almashtirish":"Rasm qo'shish"}</button>
+        ${band.photo?`<button class="btn ghost" data-photo="del">${armedDel==="photo"?"O'chirilsinmi?":"Rasmni o'chirish"}</button>`:""}
+      </div>
+      <input type="file" id="photoFile" accept="image/*" hidden>
+      <div class="bandgrid">${BAND.map(([k,l,u,st])=>`<div class="field"><label for="b-${k}">${l}${u?", "+u:""}</label><input id="b-${k}" data-band="${k}" type="number" inputmode="decimal" min="0" step="${st}" value="${band[k]!=null?band[k]:""}"></div>`).join("")}</div>
+      <p class="small muted">Zaldan chiqqach bilaguzuk ilovasidan skrinshot olib qo'ying va asosiy raqamlarni yozing. Hisobot shu raqamlardan tuziladi.</p>
+    </div>
+    <div class="card">
       <h3>Shu hafta</h3>
       <div class="kv">${week}</div>
     </div>
   `;
+  if(band.photo){const want=cur;PHOTOS.get(want).then(u=>{const box=document.getElementById("bandPhoto");if(!u||!box||want!==cur||tab!=="zal")return;box.innerHTML=`<img src="${u}" alt="Bilaguzuk ekrani, ${esc(shortDate(want))}">`;box.hidden=false}).catch(()=>{})}
 }
 
 /* ---------- render: menu ---------- */
@@ -565,10 +607,78 @@ function renderMenu(){
   `;
 }
 
+/* ---------- render: report ---------- */
+let repMode="week", repOff=0;
+const mondayOf=s=>addDays(s,-((parse(s).getDay()+6)%7));
+function repRange(){
+  if(repMode==="week"){const a=addDays(mondayOf(today()),repOff*7);return {a,b:addDays(a,6),title:shortDate(a)+" – "+shortDate(addDays(a,6))}}
+  const t=parse(today()),d=new Date(t.getFullYear(),t.getMonth()+repOff,1,12),a=iso(d),b=iso(new Date(d.getFullYear(),d.getMonth()+1,0,12));
+  return {a,b,title:MONTHS[d.getMonth()][0].toUpperCase()+MONTHS[d.getMonth()].slice(1)+" "+d.getFullYear()};
+}
+const avg=xs=>xs.length?xs.reduce((x,y)=>x+y,0)/xs.length:null;
+const fmt1=n=>(Math.round(n*10)/10).toLocaleString("ru-RU");
+function renderReport(){
+  const el=document.getElementById("tab-hisobot"), {a,b,title}=repRange(), end=b<today()?b:today();
+  const days=[];for(let s=a;s<=b;s=addDays(s,1))days.push(s);
+  const past=days.filter(s=>s<=end), logged=past.filter(s=>S.days[s]);
+  const gym=past.filter(s=>isGym(peekDay(s))), mgCount={};
+  gym.forEach(s=>(peekDay(s).mg||[]).forEach(k=>mgCount[k]=(mgCount[k]||0)+1));
+  const water=avg(logged.map(s=>litres(peekDay(s)))), water3=logged.filter(s=>litres(peekDay(s))>=3).length;
+  const habit=avg(logged.map(s=>{const r=scoreOf(s);return r.done/r.total}));
+  const bandOf=k=>past.map(s=>(peekDay(s).band||{})[k]).filter(v=>v>0);
+  const steps=bandOf("steps"), kcal=bandOf("kcal"), mins=bandOf("min"), hr=bandOf("hr"), sleep=bandOf("sleep");
+  const ws=entries().filter(e=>e.d>=a&&e.d<=end), wCh=ws.length>1?ws[ws.length-1].kg-ws[0].kg:null;
+  const stepGoal=weekPlan(end).steps, maxSteps=Math.max(stepGoal,...steps,1);
+  const bars=days.map(s=>{const v=(peekDay(s).band||{}).steps||0;return `<span class="${v>=stepGoal?"on":""}" style="height:${Math.max(2,Math.round(v/maxSteps*100))}%" title="${shortDate(s)}: ${fmtInt(v)}"></span>`}).join("");
+  const lbls=days.map(s=>`<span>${repMode==="week"?WSHORT[parse(s).getDay()]:(parse(s).getDate()%5===1?parse(s).getDate():"")}</span>`).join("");
+  const tips=[];
+  if(past.length>=3){
+    if(water!=null&&water<3)tips.push("Suv kam: o'rtacha "+fmt1(water)+" l. Kuniga kamida 3 litrga harakat qiling.");
+    if(sleep.length&&avg(sleep)<7)tips.push("Uyqu kam: o'rtacha "+fmt1(avg(sleep))+" soat. 7–8 soat uxlash ozishga ham yordam beradi.");
+    if(steps.length&&avg(steps)<stepGoal)tips.push("Qadamlar maqsaddan kam: o'rtacha "+fmtInt(Math.round(avg(steps)))+", maqsad "+fmtInt(stepGoal)+".");
+    if(repMode==="week"&&gym.length<3&&end===b)tips.push("Bu hafta zalga "+gym.length+" marta borildi. Haftasiga 3 marta tavsiya qilinadi.");
+    if(wCh!=null&&wCh<=-0.3)tips.push("Vazn "+fmtKg(-wCh)+" kg ga tushdi. Yaxshi natija, shu tarzda davom eting.");
+  }
+  el.innerHTML=`
+    <div class="seg" role="group" aria-label="Hisobot davri"><button data-rep="week" aria-pressed="${repMode==="week"}">Haftalik</button><button data-rep="month" aria-pressed="${repMode==="month"}">Oylik</button></div>
+    <div class="card">
+      <div class="card-head" style="align-items:center">
+        <button class="iconbtn" data-repnav="-1" aria-label="Oldingi davr"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <h3>${title}</h3>
+        <button class="iconbtn" data-repnav="1" aria-label="Keyingi davr" ${repOff>=0?"disabled":""}><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+      </div>
+      <p class="small muted">${logged.length} kun yozilgan${past.length?" ("+past.length+" kundan)":""}</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="l">Zal</span><span class="v">${gym.length} marta</span><span class="small muted">${Object.keys(mgCount).length?MUSCLES.filter(m=>mgCount[m[0]]).map(m=>m[1]+" "+mgCount[m[0]]).join(", "):"Belgilanmagan"}</span></div>
+      <div class="stat"><span class="l">Vazn</span><span class="v ${wCh<0?"down":(wCh>0?"up":"")}">${wCh==null?"—":(wCh>0?"+":"")+fmtKg(wCh)+" kg"}</span><span class="small muted">${ws.length?fmtKg(ws[0].kg)+" → "+fmtKg(ws[ws.length-1].kg)+" kg":"O'lchov yo'q"}</span></div>
+      <div class="stat"><span class="l">Suv</span><span class="v">${water==null?"—":fmt1(water)+" l"}</span><span class="small muted">o'rtacha · 3 l+ ${water3} kun</span></div>
+      <div class="stat"><span class="l">Odatlar</span><span class="v">${habit==null?"—":Math.round(habit*100)+"%"}</span><span class="small muted">bajarilgan</span></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Bilaguzuk</h3><span class="small muted">${steps.length||kcal.length||hr.length||sleep.length?"":"Ma'lumot yo'q"}</span></div>
+      <div class="kv">
+        <span>O'rtacha qadam</span><b>${steps.length?fmtInt(Math.round(avg(steps))):"—"}</b>
+        <span>Yoqilgan kaloriya (jami)</span><b>${kcal.length?fmtInt(Math.round(kcal.reduce((x,y)=>x+y,0)))+" kkal":"—"}</b>
+        <span>Mashg'ulot vaqti (jami)</span><b>${mins.length?fmtInt(Math.round(mins.reduce((x,y)=>x+y,0)))+" daq":"—"}</b>
+        <span>O'rtacha puls</span><b>${hr.length?Math.round(avg(hr))+" zarba/daq":"—"}</b>
+        <span>O'rtacha uyqu</span><b>${sleep.length?fmt1(avg(sleep))+" soat":"—"}</b>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Qadamlar</h3><span class="small muted">yashil: ${fmtInt(stepGoal)}+</span></div>
+      <div class="bars" aria-hidden="true">${bars}</div>
+      <div class="barlbl" aria-hidden="true">${lbls}</div>
+    </div>
+    ${tips.length?`<div class="card tip"><h3>Sog'liq bo'yicha xulosa</h3><ul class="tips">${tips.map(t=>`<li class="small">${esc(t)}</li>`).join("")}</ul></div>`:""}
+    <p class="small muted">Bu maslahatlar faqat yozganlaringizga asoslanadi va shifokor ko'rigining o'rnini bosmaydi.</p>
+  `;
+}
+
 /* ---------- render all ---------- */
 function render(){
   renderHeader();
-  ({bugun:renderToday,vazn:renderWeight,zal:renderGym,menyu:renderMenu})[tab]();
+  ({bugun:renderToday,vazn:renderWeight,zal:renderGym,menyu:renderMenu,hisobot:renderReport})[tab]();
 }
 function showTab(t){
   tab=t;
@@ -599,10 +709,32 @@ document.querySelector("main").addEventListener("click",e=>{
   if(mb){const d=day(cur),k=mb.dataset.mg,a=(d.mg||[]).filter(x=>x!==k);if(a.length===(d.mg||[]).length)a.push(k);
     if(a.length){d.mg=a;d.gym=0;d.t="gym";d.c.train=true}else{delete d.mg;delete d.gym;d.c.train=false}
     save();render();return}
+  const rm=e.target.closest("[data-rep]");
+  if(rm){repMode=rm.dataset.rep;repOff=0;render();return}
+  const rn=e.target.closest("[data-repnav]");
+  if(rn){repOff=Math.min(0,repOff+Number(rn.dataset.repnav));render();return}
+  const ph=e.target.closest("[data-photo]");
+  if(ph){
+    if(ph.dataset.photo==="add"){const f=document.getElementById("photoFile");f.value="";f.click();return}
+    if(armedDel==="photo"){const d=day(cur);d.band=d.band||{};delete d.band.photo;armedDel=null;PHOTOS.del(cur).catch(()=>{});save()}else armedDel="photo";
+    render();return}
+  const pimg=e.target.closest(".bandphoto img");
+  if(pimg){pimg.classList.toggle("big");return}
   const sh=e.target.closest("[data-shop]");
   if(sh){S.shop[sh.dataset.shop]=!S.shop[sh.dataset.shop];save();render();return}
   if(e.target.closest("#shopReset")){S.shop={};save();render();return}
 });
+document.querySelector("main").addEventListener("change",async e=>{
+  const bi=e.target.closest("[data-band]");
+  if(bi){const d=day(cur),k=bi.dataset.band,v=parseFloat(bi.value.replace(",","."));d.band=d.band||{};
+    if(v>0)d.band[k]=k==="sleep"?Math.round(v*10)/10:Math.round(v);else delete d.band[k];
+    if(k==="steps"&&v>=weekPlan(cur).steps)d.c.steps=true;
+    save();return}
+  if(e.target.id==="photoFile"){const f=e.target.files&&e.target.files[0],want=cur;if(!f)return;
+    try{const u=await shrinkImage(f);await PHOTOS.put(want,u);const d=day(want);d.band=d.band||{};d.band.photo=true;save();render()}
+    catch(err){alert("Rasmni saqlab bo'lmadi.")}}
+});
+
 /* settings */
 const sheet=document.getElementById("sheet");
 document.getElementById("openSettings").addEventListener("click",()=>{
@@ -630,8 +762,9 @@ document.getElementById("saveSettings").addEventListener("click",()=>{
 });
 
 /* backup */
-document.getElementById("exportBtn").addEventListener("click",()=>{
-  const blob=new Blob([JSON.stringify(S,null,1)],{type:"application/json"});
+document.getElementById("exportBtn").addEventListener("click",async()=>{
+  let photos={};try{photos=await PHOTOS.all()}catch(e){}
+  const blob=new Blob([JSON.stringify(Object.assign({},S,{photos}))],{type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);a.download="kundalik-"+today()+".json";
   document.body.appendChild(a);a.click();a.remove();
@@ -646,6 +779,8 @@ importFile.addEventListener("change",async()=>{
   let d=null;try{d=JSON.parse(await f.text())}catch(e){}
   if(!d||d.v!==1||typeof d.days!=="object"){msg.textContent="Bu fayl kundalik zaxirasi emas.";return}
   if(!confirm("Hozirgi ma'lumotlar zaxiradagisi bilan almashtirilsinmi?"))return;
+  const photos=d.photos&&typeof d.photos==="object"?d.photos:{};delete d.photos;
+  for(const k of Object.keys(photos)){try{await PHOTOS.put(k,photos[k])}catch(e){}}
   S=Object.assign(blank(),d);save();render();
   msg.textContent="Ma'lumotlar tiklandi.";
 });
@@ -672,7 +807,7 @@ document.getElementById("installBtn").addEventListener("click",async()=>{
 if("serviceWorker" in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});
 
 /* ---------- boot ---------- */
-try{const t=localStorage.getItem(KEY+"-tab");if(t&&["bugun","vazn","zal","menyu"].includes(t))tab=t}catch(e){}
+try{const t=localStorage.getItem(KEY+"-tab");if(t&&["bugun","vazn","zal","menyu","hisobot"].includes(t))tab=t}catch(e){}
 showTab(tab);
 setSync("local");
 
