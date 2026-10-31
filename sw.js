@@ -1,6 +1,6 @@
 // Offline support: app shell is cached on install; pages are network-first,
 // everything else (icons, fonts) is served from cache and refreshed in the background.
-const CACHE = "kundalik-v14";
+const CACHE = "kundalik-v15";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

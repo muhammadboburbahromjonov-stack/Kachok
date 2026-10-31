@@ -153,7 +153,8 @@ p{margin:0}
 .meal:first-child{border-top:0}
 .meal .tm{font-family:var(--font-display);font-size:13px;color:var(--accent);font-weight:500;padding-top:2px}
 .chk.shopi{grid-template-columns:28px minmax(0,1fr) auto;align-items:center}
-.chk.shopi .q{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+.shopg{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.chk.shopi .q{font-size:13px;line-height:1.35;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
 .chk.shopi[aria-pressed="true"] .q{text-decoration:line-through}
 .meal .mm{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .eat{justify-self:start;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:99px;border:2px solid var(--line);background:none;font-weight:700;font-size:13px;color:var(--muted);margin-top:4px}
@@ -290,13 +291,15 @@ const WEEKS=[
   {steps:9500, focus:"Hammasini ushlab turing. Osh va somsa haftasiga 1 martadan.", gym:"3 marta zal, kardio 25 daqiqaga.", cardio:25, expect:"−0,5…−1 kg; o'lchov va surat oling"}
 ];
 
-// Shopping for one week of WEEK_MENU, raw weights rounded up.
+// Shopping for one week of WEEK_MENU, raw weights rounded up. Prices are rough Tashkent market
+// estimates in so'm for the listed amount (0 = bought rarely or already at home).
 const SHOP=[
-  ["Oqsil",[["Tuxum","40 dona"],["Tovuq ko'kragi","0,8 kg"],["Tovuq soni yoki go'shti, terisiz","0,5 kg"],["Kurka (indeyka) filesi","0,5 kg"],["Yog'siz mol go'shti","0,5 kg"],["Mol go'shti qiymasi, yog'siz","0,25 kg"],["Baliq (sudak yoki xek)","0,8 kg"],["Tvorog 5%","0,75 kg"],["Protein: whey izolyat","14 porsiya"]]],
-  ["Don va yog'",[["Jo'xori yormasi (ovsyanka)","150 g"],["Grechka","250 g"],["Yong'oq","50 g"],["Zaytun yog'i","250 ml"],["Kokos yog'i","ixtiyoriy"]]],
-  ["Sabzavot",[["Bodring","2 kg"],["Pomidor","1,5 kg"],["Karam","1 bosh"],["Sabzi","0,5 kg"],["Brokkoli yoki gulkaram","0,7 kg"],["Ko'kat (ukrop, petrushka, kashnich)","5 bog'"],["Limon","2 dona"]]],
-  ["Qo'shimchalar",[["Arginin","35 g"],["Sink","qoldig'ini tekshiring"],["D3 vitamini","qoldig'ini tekshiring"],["C vitamini","qoldig'ini tekshiring"],["Kardioleks","7 dona"]]]
+  ["Oqsil",[["Tuxum","40 dona",64000],["Tovuq ko'kragi","0,8 kg",48000],["Tovuq soni yoki go'shti, terisiz","0,5 kg",21000],["Kurka (indeyka) filesi","0,5 kg",45000],["Yog'siz mol go'shti","0,5 kg",58000],["Mol go'shti qiymasi, yog'siz","0,25 kg",26000],["Baliq (sudak yoki xek)","0,8 kg",56000],["Tvorog 5%","0,75 kg",34000],["Protein: whey izolyat","14 porsiya",350000]]],
+  ["Don va yog'",[["Jo'xori yormasi (ovsyanka)","150 g",5000],["Grechka","250 g",6000],["Yong'oq","50 g",6000],["Zaytun yog'i","250 ml",55000],["Kokos yog'i","ixtiyoriy",0]]],
+  ["Sabzavot",[["Bodring","2 kg",30000],["Pomidor","1,5 kg",27000],["Karam","1 bosh",8000],["Sabzi","0,5 kg",3000],["Brokkoli yoki gulkaram","0,7 kg",25000],["Ko'kat (ukrop, petrushka, kashnich)","5 bog'",15000],["Limon","2 dona",8000]]],
+  ["Qo'shimchalar",[["Arginin","35 g",25000],["Sink","qoldig'ini tekshiring",0],["D3 vitamini","qoldig'ini tekshiring",0],["C vitamini","qoldig'ini tekshiring",0],["Kardioleks","7 dona",0]]]
 ];
+const som=n=>"~"+fmtInt(Math.round(n/1000)*1000)+" so'm";
 
 /* ---------- dates ---------- */
 const pad=n=>String(n).padStart(2,"0");
@@ -677,7 +680,9 @@ function renderMenu(){
   const el=document.getElementById("tab-menyu"), d=peekDay(cur), ate=d.ate||{}, tot=foodTotals(d,cur), menu=menuFor(cur), planKc=menu.reduce((a,m)=>a+m.kc,0), planPr=menu.reduce((a,m)=>a+m.pr,0);
   const altRows=k=>(d.food||[]).filter(f=>f.meal===k).map(f=>`<div class="alt"><span>${k==="other"?"":"O'rniga: "}<b>${esc(f.t)}</b>${f.kc>0?" · "+f.kc+" kkal":""}${f.pr>0?" · "+f.pr+" g oqsil":""}</span><button class="del${armedDel==="f"+f.id?" arm":""}" data-fdel="${f.id}">${armedDel==="f"+f.id?"O'chirilsinmi?":"O'chirish"}</button></div>`).join("");
   if(S.shopWeek!==mondayOf(today())){S.shop={};S.shopWeek=mondayOf(today())}
-  const shop=SHOP.map(([g,xs],gi)=>`<div class="stack" style="gap:4px"><span class="eyebrow">${g}</span><div class="checks">${xs.map(([x,q],i)=>{const id="w"+gi+"-"+i;return `<button class="chk shopi" data-shop="${id}" aria-pressed="${!!S.shop[id]}"><span class="box">${CHECK}</span><span class="t">${x}</span><span class="q">${q}</span></button>`}).join("")}</div></div>`).join("");
+  let shopTotal=0, shopLeft=0;
+  SHOP.forEach(([g,xs],gi)=>xs.forEach(([x,q,pr],i)=>{shopTotal+=pr;if(!S.shop["w"+gi+"-"+i])shopLeft+=pr}));
+  const shop=SHOP.map(([g,xs],gi)=>`<div class="stack" style="gap:4px"><div class="shopg"><span class="eyebrow">${g}</span><span class="small muted num">${som(xs.reduce((a,x)=>a+x[2],0))}</span></div><div class="checks">${xs.map(([x,q,pr],i)=>{const id="w"+gi+"-"+i;return `<button class="chk shopi" data-shop="${id}" aria-pressed="${!!S.shop[id]}"><span class="box">${CHECK}</span><span class="t">${x}</span><span class="q">${q}${pr?`<br>${som(pr)}`:""}</span></button>`}).join("")}</div></div>`).join("");
   el.innerHTML=`
     <div class="card">
       <div class="card-head"><h3>${cur===today()?"Bugun":esc(longDate(cur))} nima yedingiz?</h3><span class="pill ${tot.kc>planKc+150?"warn":"ok"}">${fmtInt(tot.kc)} / ${fmtInt(planKc)} kkal</span></div>
@@ -729,6 +734,12 @@ function renderMenu(){
     </div>
     <div class="card shop">
       <div class="card-head"><h3>Haftalik xarid</h3><button class="del" id="shopReset">Belgilarni tozalash</button></div>
+      <div class="kv">
+        <span>Haftasiga</span><b>${som(shopTotal)}</b>
+        <span>O'rtacha kuniga</span><b>${som(shopTotal/7)}</b>
+        <span>Hali olinmagan</span><b>${som(shopLeft)}</b>
+      </div>
+      <p class="small muted">Narxlar Toshkent bozori va do'konlari bo'yicha taxminiy, mavsum va joyga qarab o'zgaradi. Eng katta xarajat protein: haftalik 14 porsiya ${som(350000)}. 30 porsiyali banka 2 haftaga yetadi, uni 2 haftada bir marta olasiz. Vitaminlar va Kardioleks summaga kirmagan.</p>
       ${shop}
     </div>
     <div class="card">
