@@ -36,7 +36,7 @@ img{max-width:100%}
 
 *{box-sizing:border-box}
 html,body{background:var(--bg)}
-body{color:var(--ink);font:15px/1.45 var(--font-body);-webkit-tap-highlight-color:transparent}
+body{color:var(--ink);font:17px/1.5 var(--font-body);-webkit-tap-highlight-color:transparent}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
 button,input{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -64,10 +64,10 @@ main .wrap{padding-block:16px;display:grid;gap:14px}
 section[hidden]{display:none}
 .stack{display:grid;gap:14px}
 h2{font-family:var(--font-display);font-weight:500;font-size:15px;margin:0;letter-spacing:.01em}
-h3{font-size:15px;margin:0;font-weight:700}
+h3{font-size:18px;margin:0;font-weight:700}
 p{margin:0}
 .muted{color:var(--muted)}
-.small{font-size:13px}
+.small{font-size:15px}
 .card{background:linear-gradient(180deg,var(--surface-hi),var(--surface) 60%);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:12px;min-width:0}
 .card-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
 .num{font-variant-numeric:tabular-nums}
@@ -101,14 +101,14 @@ p{margin:0}
 .chk[aria-pressed="true"] .box{background:var(--ok);border-color:var(--ok);color:var(--ok-ink);box-shadow:var(--glow-ok)}
 .chk[aria-pressed="true"] .box svg{opacity:1}
 .chk[aria-pressed="true"] .t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
-.chk .t{font-weight:600;display:block}
-.chk .h{font-size:13px;color:var(--muted);display:block}
+.chk .t{font-weight:600;display:block;font-size:17px}
+.chk .h{font-size:15px;color:var(--muted);display:block}
 
 .liters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
 .liters button{height:56px;border-radius:12px;border:2px solid var(--line);background:none;font-weight:700;font-size:15px;color:var(--muted)}
 .liters button[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--ok-ink);box-shadow:var(--glow-ok)}
 
-.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--surface-2);color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;padding:3px 9px;border-radius:99px;background:var(--surface-2);color:var(--muted)}
 .pill.ok{background:var(--ok-soft);color:var(--ok-text);box-shadow:inset 0 0 0 1px rgba(61,255,143,.35)}
 .pill.ac{background:var(--accent-soft);color:var(--accent)}
 .pill.warn{background:var(--warn-soft);color:var(--warn)}
@@ -159,7 +159,7 @@ p{margin:0}
 .shopg{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .chk.shopi .q{font-size:13px;line-height:1.35;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
 .chk.shopi[aria-pressed="true"] .q{text-decoration:line-through}
-.meal .mm{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.meal .mm{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
 .eat{justify-self:start;display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 14px;border-radius:99px;border:2px solid var(--line);background:none;font-weight:700;font-size:13px;color:var(--muted);margin-top:4px}
 .eat svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .eat[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--ok-ink);box-shadow:var(--glow-ok)}
@@ -186,6 +186,15 @@ nav.tabs button[aria-current="page"] svg{filter:drop-shadow(0 0 6px rgba(255,46,
 .sheet[hidden]{display:none}
 .sheet{position:fixed;inset:0;z-index:20;background:rgba(10,15,20,.45);display:grid;align-items:end}
 .sheet .panel{background:var(--surface);border-radius:18px 18px 0 0;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;gap:14px;max-width:560px;width:100%;margin:0 auto}
+details.more{display:grid;gap:4px}
+details.more>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:44px;font-weight:700;font-size:15px;color:var(--muted);justify-self:start;border-radius:10px}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::after{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+details.more[open]>summary::after{transform:translateY(2px) rotate(-135deg)}
+details.more>summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+details.more>.mb{font-size:16px;color:var(--muted);line-height:1.55}
+details.card.more>summary{justify-self:stretch;justify-content:space-between;color:var(--ink);min-height:44px}
+details.card.more>summary h3{font-size:18px}
 .mgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .bandgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .bandgrid .field:first-child{grid-column:1/-1}
@@ -303,6 +312,8 @@ const SHOP=[
   ["Sabzavot",[["Bodring","2 kg",30000],["Pomidor","1,5 kg",27000],["Karam","1 bosh",8000],["Sabzi","0,5 kg",3000],["Brokkoli yoki gulkaram","0,7 kg",25000],["Ko'kat (ukrop, petrushka, kashnich)","5 bog'",15000],["Limon","2 dona",8000]]],
   ["Qo'shimchalar",[["Arginin","35 g",25000],["Sink","qoldig'ini tekshiring",0],["D3 vitamini","qoldig'ini tekshiring",0],["C vitamini","qoldig'ini tekshiring",0],["Kardioleks","7 dona",0]]]
 ];
+// Explanations stay folded; they open under their button when tapped.
+const more=(html,label="Batafsil")=>`<details class="more"><summary>${label}</summary><div class="mb">${html}</div></details>`;
 const som=n=>"~"+fmtInt(Math.round(n/1000)*1000)+" so'm";
 
 /* ---------- dates ---------- */
@@ -430,7 +441,8 @@ async function pushDb(){
 function setSync(m){
   syncMode=m;
   const el=document.getElementById("sync");
-  el.textContent={loading:"Yuklanmoqda…",saving:"Saqlanmoqda…",saved:"Hisobingizga saqlanadi",local:"Faqat shu qurilmada saqlanadi",error:"Saqlab bo'lmadi, internetni tekshiring"}[m]||"";
+  el.textContent={saving:"Saqlanmoqda…",error:"Saqlab bo'lmadi, internetni tekshiring"}[m]||"";
+  el.hidden=!el.textContent;
 }
 
 /* ---------- plan helpers ---------- */
@@ -518,14 +530,14 @@ function renderToday(){
         <button data-dtype="walk" aria-pressed="${t==="walk"}">Yurish</button>
         <button data-dtype="rest" aria-pressed="${t==="rest"}">Dam</button>
       </div>
-      <p class="small muted">${t==="gym"?"Mashqlar «Zal» bo'limida.":t==="walk"?"Zalsiz kun: 30–40 daqiqa tez yuring.":"Dam olish kuni: qadam, suv va ovqat qoidalari o'z kuchida."} Haftada ${target} marta zal yetarli, kunlarini o'zingiz tanlaysiz.</p>
+      ${more((t==="gym"?"Zalda nima ishlaganingizni «Zal» bo'limida belgilang.":t==="walk"?"Zalsiz kun: 30–40 daqiqa tez yuring.":"Dam olish kuni: qadam, suv va ovqat qoidalari o'z kuchida.")+` Haftada ${target} marta zal yetarli.`)}
     </div>
-    ${w>=1&&w<=4?`<div class="card focus"><div class="eyebrow">${w}-hafta diqqati</div><p><b>${p.focus}</b></p><p class="small">Mashq: ${p.gym} Kutilgan natija: ${p.expect}.</p></div>`:""}
-    <div class="card"><div class="checks">${its.map(i=>`<button class="chk" data-chk="${i.id}" aria-pressed="${!!d.c[i.id]}"><span class="box">${CHECK}</span><span><span class="t">${i.t}</span><span class="h">${i.h}</span></span></button>`).join("")}</div></div>
+    ${w>=1&&w<=4?`<div class="card focus"><div class="eyebrow">${w}-hafta diqqati</div><p><b>${p.focus}</b></p>${more("Mashq: "+p.gym+" Kutilgan natija: "+p.expect+".")}</div>`:""}
+    <div class="card"><div class="checks">${its.map(i=>`<button class="chk" data-chk="${i.id}" aria-pressed="${!!d.c[i.id]}"><span class="box">${CHECK}</span><span><span class="t">${i.t}</span></span></button>`).join("")}</div>${more(its.map(i=>`<b>${i.t}</b>: ${i.h}`).join("<br>"),"Odatlar haqida")}</div>
     <div class="card">
       <div class="card-head"><h3>Suv</h3><span class="small muted num">${L} / 5 l</span></div>
       <div class="liters" role="group" aria-label="Ichilgan suv, litr">${[1,2,3,4,5].map(i=>`<button data-litre="${i}" aria-pressed="${i<=L}">${i} l</button>`).join("")}</div>
-      <p class="small muted">Har belgi 1 litr. 3 litrdan keyin odat bajarilgan hisoblanadi.</p>
+      ${more("Har belgi 1 litr. 3 litrdan keyin odat bajarilgan hisoblanadi.")}
     </div>
   `;
 }
@@ -585,7 +597,8 @@ function renderWeight(){
     <div class="card">
       <div class="card-head"><h3>Grafik</h3><div class="legend"><span><i style="background:var(--accent)"></i>Vazn</span><span><i style="background:var(--ok)"></i>Maqsad</span></div></div>
       <div class="chartbox">${chartSVG(list)}</div>
-      <p class="small muted">Har hafta bir xil kuni, ertalab, hojatxonadan keyin va nonushtadan oldin torting. Shunda o'zgarish aniq ko'rinadi.${firstWaist&&lastWaist&&firstWaist!==lastWaist?` Bel: ${firstWaist.waist} → ${lastWaist.waist} sm.`:""}</p>
+      ${firstWaist&&lastWaist&&firstWaist!==lastWaist?`<p class="small muted">Bel: ${firstWaist.waist} → ${lastWaist.waist} sm</p>`:""}
+      ${more("Har hafta bir xil kuni, ertalab, hojatxonadan keyin va nonushtadan oldin torting. Shunda o'zgarish aniq ko'rinadi.","Qanday tortilish kerak")}
     </div>
     <div class="card">
       <h3>Yozuvlar</h3>
@@ -639,7 +652,7 @@ function renderGym(){
       <p class="small muted" id="bandNote" role="status"></p>
       <input type="file" id="photoFile" accept="image/*" hidden>
       <div class="bandgrid">${BAND.map(([k,l,u,st])=>`<div class="field"><label for="b-${k}">${l}${u?", "+u:""}</label><input id="b-${k}" data-band="${k}" type="number" inputmode="decimal" min="0" step="${st}" value="${band[k]!=null?band[k]:""}"></div>`).join("")}</div>
-      <p class="small muted">Zaldan chiqqach bilaguzuk ilovasidan skrinshot olib qo'ying va asosiy raqamlarni yozing. Hisobot shu raqamlardan tuziladi.</p>
+      ${more("Zaldan chiqqach bilaguzuk ilovasidan skrinshot olib qo'ying va asosiy raqamlarni yozing. Hisobot shu raqamlardan tuziladi.")}
     </div>
     <div class="card">
       <h3>Shu hafta</h3>
@@ -695,10 +708,11 @@ function renderMenu(){
         <span>Menyudan</span><b>${tot.menu} / ${MEALS.length} ovqat</b>
         ${tot.extra?`<span>Boshqa ovqat</span><b>${tot.extra} ta</b>`:""}
       </div>
-      <p class="small muted">${WDAYS[parse(cur).getDay()][0].toUpperCase()+WDAYS[parse(cur).getDay()].slice(1)} menyusi. Menyu har kuni almashadi, asosi murabbiy rejasi: ~1850 kkal, ~180 g oqsil, non va shirinliksiz. Go'sht pishgan holda tortiladi.${tot.unknown?` ${tot.unknown} ta ovqatning kaloriyasi yozilmagan, u jamiga kirmadi.`:""}</p>
+      ${tot.unknown?`<p class="small muted">${tot.unknown} ta ovqatning kaloriyasi yozilmagan, u jamiga kirmadi.</p>`:""}
+      ${more("Menyu har kuni almashadi. Asosi murabbiy rejasi: ~1850 kkal, ~180 g oqsil, non va shirinliksiz. Go'sht pishgan holda tortiladi.")}
     </div>
     <div class="card">
-      <div>${menu.map(m=>`<div class="meal">${foodArt(m.k)}<div style="display:grid;gap:3px;min-width:0"><span class="tag">${m.tag}</span><b>${m.t}</b><span class="small">${m.d}</span><span class="mm">${m.m}</span>
+      <div>${menu.map(m=>`<div class="meal">${foodArt(m.k)}<div style="display:grid;gap:3px;min-width:0"><span class="tag">${m.tag}</span><b>${m.t}</b><span class="mm">${m.m}</span>${more(m.d,"Tarkibi")}
         <button class="eat" data-eat="${m.k}" aria-pressed="${!!ate[m.k]}">${CHECK}Yedim</button>
         ${altRows(m.k)}</div></div>`).join("")}</div>
     </div>
@@ -712,30 +726,30 @@ function renderMenu(){
         <button class="btn wide" type="submit">Qo'shish</button>
       </form>
       ${altRows("other")}
-      <p class="small muted">Kaloriyani bilmasangiz, bo'sh qoldiring. Qo'shilgan ovqat tanlangan mahal ostida «O'rniga» deb chiqadi.</p>
+      ${more("Kaloriyani bilmasangiz, bo'sh qoldiring. Qo'shilgan ovqat tanlangan mahal ostida «O'rniga» deb chiqadi.")}
     </div>
     <div class="card">
       <div class="meal" style="border-top:0;padding-top:0">${foodArt("water")}<div style="display:grid;gap:3px"><span class="tag">Suv</span><b>Kuniga kamida 3, ko'pi bilan 5 litr</b><span class="small muted">«Bugun» bo'limida litrlab belgilang.</span></div></div>
       <div class="meal">${foodArt("vit")}<div style="display:grid;gap:3px"><span class="tag">Vitaminlar</span><b>Sink, D3 (10 000 birlik), C vitamini</b><span class="small">Nonushtadan yarim soat keyin. Yotishdan oldin Kardioleks, 1 dona.</span><span class="small muted">D vitaminingiz tahlilda normada (34,2). 10 000 birlikni qancha muddat ichishni endokrinolog bilan aniqlang.</span></div></div>
     </div>
-    <div class="card">
-      <h3>Qo'shimcha maslahatlar</h3>
+    <details class="card more">
+      <summary><h3>Qo'shimcha maslahatlar</h3></summary>
       <ul class="plain">
         <li>Salatni kattaroq qiling: karam va sabzi qo'shing. Menyuda kletchatka kam.</li>
         <li>Zalda holsizlik yoki bosh aylanishi sezsangiz, mashq kunlari tushlikka 100–150 g grechka qo'shing.</li>
         <li>Non, shirinlik va shirin ichimliklar menyuda yo'q, shunday qolsin.</li>
         <li>Ovqatdan keyin 10–15 daqiqa yuring.</li>
       </ul>
-    </div>
-    <div class="card">
-      <h3>Shirinlik istagi kelsa</h3>
+    </details>
+    <details class="card more">
+      <summary><h3>Shirinlik istagi kelsa</h3></summary>
       <ul class="plain">
         <li>Uyda saqlamang.</li>
         <li>Suv yoki shakarsiz choy iching va 10 daqiqa kuting. Ko'pincha istak o'tib ketadi.</li>
         <li>Juda qiynalsangiz, 2 xurmo yoki 1 olma, tushlikdan keyin.</li>
         <li>Xato qilsangiz, keyingi ovqatdan rejaga qayting.</li>
       </ul>
-    </div>
+    </details>
     <div class="card shop">
       <div class="card-head"><h3>Haftalik xarid</h3><button class="del" id="shopReset">Belgilarni tozalash</button></div>
       <div class="kv">
@@ -744,17 +758,17 @@ function renderMenu(){
         <span>Belgilanganlar (olingan)</span><b>${som(shopTotal-shopLeft)}</b>
         <span>Hali olinmagan</span><b>${som(shopLeft)}</b>
       </div>
-      <p class="small muted">Narxlar Toshkent bozori va do'konlari bo'yicha taxminiy, mavsum va joyga qarab o'zgaradi. Eng katta xarajat protein: haftalik 14 porsiya ${som(350000)}. 30 porsiyali banka 2 haftaga yetadi, uni 2 haftada bir marta olasiz. Vitaminlar va Kardioleks summaga kirmagan.</p>
+      ${more(`Narxlar Toshkent bozori va do'konlari bo'yicha taxminiy, mavsum va joyga qarab o'zgaradi. Eng katta xarajat protein: haftalik 14 porsiya ${som(350000)}. 30 porsiyali banka 2 haftaga yetadi, uni 2 haftada bir marta olasiz. Vitaminlar va Kardioleks summaga kirmagan.`,"Narxlar haqida")}
       ${shop}
     </div>
-    <div class="card">
-      <h3>Shifokor nazorati</h3>
+    <details class="card more">
+      <summary><h3>Shifokor nazorati</h3></summary>
       <ul class="plain">
         <li>Menyu va vitaminlarni endokrinologga ko'rsating: insulin va C-peptid yuqori, AST biroz baland.</li>
         <li>3 oydan keyin qayta tahlil: insulin, C-peptid, glyukoza, HbA1c, ALT, AST, lipid spektr, D vitamini va jigar UZI.</li>
         <li><b>Mashqni darhol to'xtating</b>: ko'krakda og'riq yoki siqilish, kuchli bosh aylanishi, nafas yetishmasligi, yurak notekis urishi.</li>
       </ul>
-    </div>
+    </details>
   `;
   document.getElementById("fForm").addEventListener("submit",ev=>{
     ev.preventDefault();
@@ -830,18 +844,17 @@ function renderReport(){
       <div class="bars" aria-hidden="true">${bars}<i class="goal" style="bottom:${Math.round(stepGoal/maxSteps*100)}%"></i></div>
       <div class="barlbl" aria-hidden="true">${lbls}</div>
     </div>
-    ${tips.length?`<div class="card tip"><h3>Sog'liq bo'yicha xulosa</h3><ul class="tips">${tips.map(t=>`<li class="small">${esc(t)}</li>`).join("")}</ul></div>`:""}
+    ${tips.length?`<div class="card tip"><h3>Sog'liq bo'yicha xulosa</h3><p class="small muted">Faqat yozganlaringizga asoslanadi, shifokor o'rnini bosmaydi.</p><ul class="tips">${tips.map(t=>`<li class="small">${esc(t)}</li>`).join("")}</ul></div>`:""}
     ${SAMPLE&&!aiOff?`<div class="card">
       <div class="card-head"><h3>Claude bilan suhbat</h3><span class="small muted">sog'lig'ingiz haqida</span></div>
-      <p class="small muted">Claude oxirgi 60 kunlik yozuvlaringizni ko'rib javob beradi. Javoblar Claude hisobingiz limitidan foydalanadi.</p>
+      ${more("Claude oxirgi 60 kunlik yozuvlaringizni ko'rib javob beradi. Javoblar Claude hisobingiz limitidan foydalanadi. Bu maslahatlar shifokor ko'rigining o'rnini bosmaydi.")}
       <div class="aimsgs" id="aiMsgs" aria-live="polite"></div>
       <button class="btn ghost wide" data-ai="summary">Ma'lumotlarim bo'yicha xulosa</button>
       <form class="aiform" id="aiForm"><input id="aiQ" type="text" placeholder="Savol yozing, masalan: nega vaznim tushmayapti?" aria-label="Savol" autocomplete="off"><button class="btn" id="aiSend" type="submit">Yuborish</button></form>
       <button class="btn ghost" id="aiStop" data-aistop hidden>To'xtatish</button>
       <p class="small muted" id="aiNote" role="status"></p>
     </div>`:""}
-    ${window.claude?"":`<div class="card"><h3>Claude bilan suhbat</h3><p class="small">Ma'lumotlaringiz bo'yicha savol berish va bilaguzuk rasmini o'qitish ilovaning Claude versiyasida ishlaydi. Yozuvlarni o'tkazish uchun bu yerda «Sozlamalar» → «Yuklab olish», u yerda «Tiklash»ni bosing.</p><a class="btn wide" style="display:grid;place-items:center;text-decoration:none" href="https://claude.ai/artifact/EabE3AMrZRSPGqBRFcs3We" target="_blank" rel="noopener">Claude versiyasini ochish</a></div>`}
-    <p class="small muted">Bu maslahatlar faqat yozganlaringizga asoslanadi va shifokor ko'rigining o'rnini bosmaydi.</p>
+    ${window.claude?"":`<div class="card"><h3>Claude bilan suhbat</h3><p class="small">Savollar Claude versiyasida ishlaydi.</p>${more("Bilaguzuk rasmini o'qitish ham o'sha yerda. Yozuvlarni o'tkazish uchun bu yerda «Sozlamalar» → «Yuklab olish», u yerda «Tiklash»ni bosing.")}<a class="btn wide" style="display:grid;place-items:center;text-decoration:none" href="https://claude.ai/artifact/EabE3AMrZRSPGqBRFcs3We" target="_blank" rel="noopener">Claude versiyasini ochish</a></div>`}
   `;
   if(SAMPLE&&!aiOff){renderAiMsgs();document.getElementById("aiForm").addEventListener("submit",ev=>{ev.preventDefault();const q=document.getElementById("aiQ");const v=q.value;q.value="";aiAsk(v)})}
 }
