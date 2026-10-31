@@ -50,7 +50,7 @@ button{cursor:pointer}
 header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
 header .wrap{padding-block:10px 12px;display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:8px}
 .eyebrow{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
-.daytitle{font-family:var(--font-display);font-weight:700;font-size:clamp(15px,4.6vw,18px);line-height:1.15;text-wrap:balance}
+.daytitle{font-family:var(--font-display);font-weight:700;font-size:19px;line-height:1.15;text-wrap:balance}
 .iconbtn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;flex:none}
 .iconbtn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .iconbtn:disabled{opacity:.35;cursor:default}
@@ -152,6 +152,9 @@ p{margin:0}
 .meal .tag{font-family:var(--font-display);font-size:12px;color:var(--accent);font-weight:500;letter-spacing:.02em}
 .meal:first-child{border-top:0}
 .meal .tm{font-family:var(--font-display);font-size:13px;color:var(--accent);font-weight:500;padding-top:2px}
+.chk.shopi{grid-template-columns:28px minmax(0,1fr) auto;align-items:center}
+.chk.shopi .q{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+.chk.shopi[aria-pressed="true"] .q{text-decoration:line-through}
 .meal .mm{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .eat{justify-self:start;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:99px;border:2px solid var(--line);background:none;font-weight:700;font-size:13px;color:var(--muted);margin-top:4px}
 .eat svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
@@ -287,11 +290,12 @@ const WEEKS=[
   {steps:9500, focus:"Hammasini ushlab turing. Osh va somsa haftasiga 1 martadan.", gym:"3 marta zal, kardio 25 daqiqaga.", cardio:25, expect:"−0,5…−1 kg; o'lchov va surat oling"}
 ];
 
+// Shopping for one week of WEEK_MENU, raw weights rounded up.
 const SHOP=[
-  ["Oqsil",["Tuxum (kuniga 6 ta)","Tovuq ko'kragi yoki son (golen)","Yog'siz mol go'shti","Baliq","Protein: whey izolyat"]],
-  ["Nonushta",["Jo'xori yormasi (ovsyanka)","Zaytun yog'i","Kokos yog'i"]],
-  ["Salat",["Bodring","Pomidor","Ko'kat (ukrop, petrushka, kashnich)","Karam va sabzi (kletchatka uchun)"]],
-  ["Qo'shimchalar",["Arginin","Sink","D3 vitamini","C vitamini","Kardioleks"]]
+  ["Oqsil",[["Tuxum","40 dona"],["Tovuq ko'kragi","0,8 kg"],["Tovuq soni yoki go'shti, terisiz","0,5 kg"],["Kurka (indeyka) filesi","0,5 kg"],["Yog'siz mol go'shti","0,5 kg"],["Mol go'shti qiymasi, yog'siz","0,25 kg"],["Baliq (sudak yoki xek)","0,8 kg"],["Tvorog 5%","0,75 kg"],["Protein: whey izolyat","14 porsiya"]]],
+  ["Don va yog'",[["Jo'xori yormasi (ovsyanka)","150 g"],["Grechka","250 g"],["Yong'oq","50 g"],["Zaytun yog'i","250 ml"],["Kokos yog'i","ixtiyoriy"]]],
+  ["Sabzavot",[["Bodring","2 kg"],["Pomidor","1,5 kg"],["Karam","1 bosh"],["Sabzi","0,5 kg"],["Brokkoli yoki gulkaram","0,7 kg"],["Ko'kat (ukrop, petrushka, kashnich)","5 bog'"],["Limon","2 dona"]]],
+  ["Qo'shimchalar",[["Arginin","35 g"],["Sink","qoldig'ini tekshiring"],["D3 vitamini","qoldig'ini tekshiring"],["C vitamini","qoldig'ini tekshiring"],["Kardioleks","7 dona"]]]
 ];
 
 /* ---------- dates ---------- */
@@ -337,11 +341,11 @@ function healthContext(){
   const st=S.settings, lines=[];
   lines.push("Today: "+today()+". Height "+st.heightCm+" cm, start weight "+st.startKg+" kg on "+st.start+", goal "+st.goalKg+" kg. Water goal 3-5 l/day, daily steps goal "+weekPlan(today()).steps+".");
   lines.push("Weigh-ins (weekly): "+(entries().map(e=>e.d+" "+e.kg+"kg"+(e.waist?" waist "+e.waist+"cm":"")).join("; ")||"none"));
-  lines.push("Coach menu (about 1850 kcal, 180 g protein a day): "+MEALS.map(m=>m.tag+": "+m.t+" ~"+m.kc+" kcal").join("; ")+".");
+  lines.push("Coach menu rotates by weekday (about 1850 kcal, 180 g protein a day, no bread or sugar). Today's menu: "+menuFor(today()).map(m=>m.tag+": "+m.t+" ~"+m.kc+" kcal").join("; ")+".");
   lines.push("Daily log, last 60 days (date | water l | habits done/total | gym muscle groups | bracelet | food):");
   for(let i=59;i>=0;i--){const k=addDays(today(),-i);if(!S.days[k])continue;const d=S.days[k],sc=scoreOf(k),b=d.band||{};
     const band=BAND.filter(([f])=>b[f]>0).map(([f,l,u])=>l+" "+b[f]+(u?" "+u:"")).join(", ");
-    const ft=foodTotals(d), food=[MEALS.filter(m=>(d.ate||{})[m.k]).map(m=>m.tag).join(", ")].filter(Boolean).concat((d.food||[]).map(f=>mealTag(f.meal)+": "+f.t+(f.kc>0?" "+f.kc+" kcal":""))).join("; ");
+    const ft=foodTotals(d,k), food=[MEALS.filter(m=>(d.ate||{})[m.k]).map(m=>m.tag).join(", ")].filter(Boolean).concat((d.food||[]).map(f=>mealTag(f.meal)+": "+f.t+(f.kc>0?" "+f.kc+" kcal":""))).join("; ");
     lines.push(k+" | "+litres(d)+" | "+sc.done+"/"+sc.total+" | "+(isGym(d)?(mgNames(d)||"gym"):"-")+" | "+(band||"-")+" | "+(food?"menu meals eaten: "+(MEALS.filter(m=>(d.ate||{})[m.k]).map(m=>m.tag).join(", ")||"none")+"; other: "+((d.food||[]).map(f=>mealTag(f.meal)+" "+f.t+(f.kc>0?" "+f.kc+" kcal":"")).join(", ")||"none")+" (~"+ft.kc+" kcal known)":"-"))}
   return lines.join("\n");
 }
@@ -396,10 +400,11 @@ function shrinkImage(file){return new Promise((res,rej)=>{const u=URL.createObje
   img.onload=()=>{const sc=Math.min(1,1400/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",0.8))};
   img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("image"))};img.src=u})}
 // Food per day: d.ate marks menu meals eaten; d.food holds what was eaten instead, typed in by hand.
-function foodTotals(d){
+function foodTotals(d,s){
+  const menu=menuFor(s);
   const ate=d.ate||{}, food=d.food||[];
   let kc=0,pr=0,unknown=0;
-  MEALS.forEach(m=>{if(ate[m.k]){kc+=m.kc;pr+=m.pr}});
+  menu.forEach(m=>{if(ate[m.k]){kc+=m.kc;pr+=m.pr}});
   food.forEach(f=>{if(f.kc>0)kc+=f.kc;else unknown++;if(f.pr>0)pr+=f.pr});
   return {kc,pr,unknown,menu:MEALS.filter(m=>ate[m.k]).length,extra:food.length};
 }
@@ -465,8 +470,9 @@ function entries(){return Object.keys(S.weights).sort().map(d=>({d,kg:S.weights[
 /* ---------- render: header ---------- */
 function renderHeader(){
   const w=weekNo(cur), d=diff(S.settings.start,cur)+1;
-  document.getElementById("hWeek").textContent=(cur===today()?"Bugun · ":"")+(w===0?"Reja boshlanmagan":(w>4?w+"-hafta":w+"-hafta · "+d+"-kun"));
-  document.getElementById("hDate").textContent=longDate(cur);
+  const pd=parse(cur);
+  document.getElementById("hWeek").textContent=[cur===today()?"Bugun":"",WDAYS[pd.getDay()],w===0?"":w+"-hafta"].filter(Boolean).join(" · ");
+  document.getElementById("hDate").textContent=pd.getDate()+"\u2011"+MONTHS[pd.getMonth()];
   document.getElementById("nextDay").disabled=cur>=today();
 }
 
@@ -637,29 +643,53 @@ function renderGym(){
 }
 
 /* ---------- render: menu ---------- */
-const MEALS=[
-  {k:"breakfast",kc:600,pr:27,tag:"Nonushta",t:"4 ta tuxum oqi va 2 ta sarig'i",d:"Qaynatilgan yoki zaytun yog'ida omlet. Yoniga 50 g jo'xori bo'tqasi suvda, ustiga 2 osh qoshiq zaytun yoki kokos yog'i.",m:"~600 kkal · 27 g oqsil"},
-  {k:"lunch",kc:550,pr:50,tag:"Tushlik",t:"200 g tovuq ko'kragi yoki terisiz son",d:"Salat: bodring, pomidor, ko'kat, ichiga 2 qoshiq zaytun yog'i.",m:"~550 kkal · 50 g oqsil"},
-  {k:"snack",kc:110,pr:25,tag:"Tamaddi",t:"Protein: whey izolyat",d:"1 porsiya, suvga aralashtirib.",m:"~110 kkal · 25 g oqsil"},
-  {k:"dinner",kc:400,pr:50,tag:"Kechki ovqat",t:"200 g mol go'shti yoki baliq",d:"Parhez usulda pishirilgan (qaynatish, dimlash, duxovka). Yangi salat: bodring, pomidor, ko'kat.",m:"~400 kkal · 50 g oqsil"},
-  {k:"night",kc:170,pr:32,tag:"22:30",t:"2 ta qaynatilgan tuxum oqi va kokteyl",d:"1 porsiya whey izolyat va 5 g arginin, 250 ml suvga aralashtirib.",m:"~170 kkal · 32 g oqsil"}
+// Coach menu as a 7-day rotation (Mon..Sun): same frame (~1850 kcal, ~180 g protein, no bread or sugar),
+// snack and 22:30 shake fixed, breakfast/lunch/dinner vary. Weights of meat and fish are cooked weights.
+const MEALS=[{k:"breakfast",tag:"Nonushta"},{k:"lunch",tag:"Tushlik"},{k:"snack",tag:"Tamaddi"},{k:"dinner",tag:"Kechki ovqat"},{k:"night",tag:"22:30"}];
+const BF={
+  A:{t:"4 ta tuxum oqi va 2 ta sarig'idan omlet",d:"Zaytun yog'ida. Yoniga 50 g jo'xori bo'tqasi suvda, ustiga 2 osh qoshiq zaytun yoki kokos yog'i.",kc:600,pr:27},
+  B:{t:"250 g tvorog (5%) va 2 ta qaynatilgan tuxum",d:"Yoniga bodring-pomidor salati, 1 osh qoshiq zaytun yog'i bilan.",kc:560,pr:55},
+  C:{t:"3 ta tuxum va 1 ta oqi, qaynatilgan",d:"Yoniga 40 g grechka bo'tqasi (quruq holda tortiladi), 15 g yong'oq va 1 osh qoshiq zaytun yog'i.",kc:590,pr:30}
+};
+const SNACK={t:"Protein: whey izolyat",d:"1 porsiya, suvga aralashtirib.",kc:110,pr:25};
+const NIGHT={t:"2 ta qaynatilgan tuxum oqi va kokteyl",d:"1 porsiya whey izolyat va 5 g arginin, 250 ml suvga aralashtirib.",kc:170,pr:32};
+const WEEK_MENU=[
+  {breakfast:BF.A,lunch:{t:"200 g tovuq ko'kragi",d:"Qaynatilgan yoki duxovkada. Salat: bodring, pomidor, ko'kat, 2 osh qoshiq zaytun yog'i.",kc:550,pr:50},
+   dinner:{t:"200 g mol go'shti, dimlangan",d:"Sabzavot bilan dimlama, kartoshkasiz. Yangi salat: bodring, pomidor, ko'kat.",kc:430,pr:50}},
+  {breakfast:BF.B,lunch:{t:"200 g kurka (indeyka) filesi",d:"Duxovkada. Yoniga 100 g pishgan grechka va karam-sabzi salati, 1 osh qoshiq zaytun yog'i.",kc:510,pr:52},
+   dinner:{t:"200 g baliq, duxovkada",d:"Limon va ko'kat bilan. Yangi salat: bodring, pomidor.",kc:380,pr:42}},
+  {breakfast:BF.C,lunch:{t:"180 g yog'siz mol go'shti",d:"Qaynatilgan yoki dimlangan. Bodring-pomidor salati, 1 osh qoshiq zaytun yog'i.",kc:610,pr:48},
+   dinner:{t:"200 g tovuq ko'kragi, bug'da",d:"Yoniga bug'da pishgan brokkoli yoki gulkaram.",kc:360,pr:50}},
+  {breakfast:BF.A,lunch:{t:"200 g tovuq soni, terisiz",d:"Duxovkada. Yoniga 100 g pishgan grechka va katta salat.",kc:510,pr:52},
+   dinner:{t:"Mol go'shti kotleti, nonsiz",d:"200 g yog'siz qiymadan, duxovkada. Karam-sabzi salati.",kc:450,pr:45}},
+  {breakfast:BF.B,lunch:{t:"200 g baliq (sudak yoki xek)",d:"Bug'da yoki duxovkada. Yoniga 150 g brokkoli yoki karam, 100 g pishgan grechka, 1 osh qoshiq zaytun yog'i.",kc:470,pr:46},
+   dinner:{t:"200 g kurka filesi",d:"Dimlangan yoki duxovkada. Karam salati.",kc:360,pr:48}},
+  {breakfast:BF.C,lunch:{t:"Tovuqli sho'rva, kartoshkasiz",d:"200 g tovuq go'shti, sabzi, karam, ko'kat. Yoniga bodring-pomidor salati, 1 osh qoshiq zaytun yog'i.",kc:510,pr:46},
+   dinner:{t:"200 g baliq, bug'da",d:"Yangi salat: bodring, ko'kat.",kc:380,pr:42}},
+  {breakfast:BF.A,lunch:{t:"200 g tovuq ko'kragi kabobi",d:"Mangalda yoki grilda, yog'siz. Katta salat: bodring, pomidor, ko'kat, 2 osh qoshiq zaytun yog'i.",kc:550,pr:50},
+   dinner:{t:"250 g tvorog (5%) va ko'kat",d:"Bodring va ko'kat bilan, ozroq tuz.",kc:330,pr:43}}
 ];
+function menuFor(s){
+  const w=WEEK_MENU[(parse(s).getDay()+6)%7], src=Object.assign({snack:SNACK,night:NIGHT},w);
+  return MEALS.map(m=>Object.assign({},m,src[m.k],{m:"~"+src[m.k].kc+" kkal · "+src[m.k].pr+" g oqsil"}));
+}
 function renderMenu(){
-  const el=document.getElementById("tab-menyu"), d=peekDay(cur), ate=d.ate||{}, tot=foodTotals(d);
+  const el=document.getElementById("tab-menyu"), d=peekDay(cur), ate=d.ate||{}, tot=foodTotals(d,cur), menu=menuFor(cur), planKc=menu.reduce((a,m)=>a+m.kc,0), planPr=menu.reduce((a,m)=>a+m.pr,0);
   const altRows=k=>(d.food||[]).filter(f=>f.meal===k).map(f=>`<div class="alt"><span>${k==="other"?"":"O'rniga: "}<b>${esc(f.t)}</b>${f.kc>0?" · "+f.kc+" kkal":""}${f.pr>0?" · "+f.pr+" g oqsil":""}</span><button class="del${armedDel==="f"+f.id?" arm":""}" data-fdel="${f.id}">${armedDel==="f"+f.id?"O'chirilsinmi?":"O'chirish"}</button></div>`).join("");
-  const shop=SHOP.map(([g,xs],gi)=>`<div class="stack" style="gap:4px"><span class="eyebrow">${g}</span><div class="checks">${xs.map((x,i)=>{const id="c"+gi+"-"+i;return `<button class="chk" data-shop="${id}" aria-pressed="${!!S.shop[id]}"><span class="box">${CHECK}</span><span class="t">${x}</span></button>`}).join("")}</div></div>`).join("");
+  if(S.shopWeek!==mondayOf(today())){S.shop={};S.shopWeek=mondayOf(today())}
+  const shop=SHOP.map(([g,xs],gi)=>`<div class="stack" style="gap:4px"><span class="eyebrow">${g}</span><div class="checks">${xs.map(([x,q],i)=>{const id="w"+gi+"-"+i;return `<button class="chk shopi" data-shop="${id}" aria-pressed="${!!S.shop[id]}"><span class="box">${CHECK}</span><span class="t">${x}</span><span class="q">${q}</span></button>`}).join("")}</div></div>`).join("");
   el.innerHTML=`
     <div class="card">
-      <div class="card-head"><h3>${cur===today()?"Bugun":esc(longDate(cur))} nima yedingiz?</h3><span class="pill ${tot.kc>1850?"warn":"ok"}">${fmtInt(tot.kc)} / 1850 kkal</span></div>
+      <div class="card-head"><h3>${cur===today()?"Bugun":esc(longDate(cur))} nima yedingiz?</h3><span class="pill ${tot.kc>planKc+150?"warn":"ok"}">${fmtInt(tot.kc)} / ${fmtInt(planKc)} kkal</span></div>
       <div class="kv">
-        <span>Oqsil</span><b>${tot.pr} / 180 g</b>
+        <span>Oqsil</span><b>${tot.pr} / ${planPr} g</b>
         <span>Menyudan</span><b>${tot.menu} / ${MEALS.length} ovqat</b>
         ${tot.extra?`<span>Boshqa ovqat</span><b>${tot.extra} ta</b>`:""}
       </div>
-      <p class="small muted">Murabbiy menyusi: kuniga ~1850 kkal, ~180 g oqsil, 50–60 g uglevod. Raqamlar taxminiy, go'sht pishgan holda tortiladi.${tot.unknown?` ${tot.unknown} ta ovqatning kaloriyasi yozilmagan, u jamiga kirmadi.`:""}</p>
+      <p class="small muted">${WDAYS[parse(cur).getDay()][0].toUpperCase()+WDAYS[parse(cur).getDay()].slice(1)} menyusi. Menyu har kuni almashadi, asosi murabbiy rejasi: ~1850 kkal, ~180 g oqsil, non va shirinliksiz. Go'sht pishgan holda tortiladi.${tot.unknown?` ${tot.unknown} ta ovqatning kaloriyasi yozilmagan, u jamiga kirmadi.`:""}</p>
     </div>
     <div class="card">
-      <div>${MEALS.map(m=>`<div class="meal">${foodArt(m.k)}<div style="display:grid;gap:3px;min-width:0"><span class="tag">${m.tag}</span><b>${m.t}</b><span class="small">${m.d}</span><span class="mm">${m.m}</span>
+      <div>${menu.map(m=>`<div class="meal">${foodArt(m.k)}<div style="display:grid;gap:3px;min-width:0"><span class="tag">${m.tag}</span><b>${m.t}</b><span class="small">${m.d}</span><span class="mm">${m.m}</span>
         <button class="eat" data-eat="${m.k}" aria-pressed="${!!ate[m.k]}">${CHECK}Yedim</button>
         ${altRows(m.k)}</div></div>`).join("")}</div>
     </div>
@@ -698,7 +728,7 @@ function renderMenu(){
       </ul>
     </div>
     <div class="card shop">
-      <div class="card-head"><h3>Xarid ro'yxati</h3><button class="del" id="shopReset">Belgilarni tozalash</button></div>
+      <div class="card-head"><h3>Haftalik xarid</h3><button class="del" id="shopReset">Belgilarni tozalash</button></div>
       ${shop}
     </div>
     <div class="card">
