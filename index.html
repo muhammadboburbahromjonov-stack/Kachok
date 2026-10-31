@@ -182,6 +182,12 @@ nav.tabs button[aria-current="page"]{color:var(--accent);background:var(--accent
 .barlbl{display:flex;gap:3px;font-size:10px;color:var(--muted);text-align:center}
 .barlbl span{flex:1;min-width:0;overflow:hidden}
 .tips{margin:0;padding-left:18px;display:grid;gap:6px}
+.aimsgs{display:grid;gap:8px}
+.aimsg{padding:10px 12px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.5;max-width:92%}
+.aimsg.u{justify-self:end;background:var(--accent-soft);color:var(--ink)}
+.aimsg.a{justify-self:start;background:var(--surface-2);color:var(--ink)}
+.aiform{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.aiform input{min-width:0;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);padding:0 12px}
 .mgrid .chk[aria-pressed="true"] .t{color:var(--ink);text-decoration:none}
 .sheet .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .sheet .panel{max-height:100dvh;overflow-y:auto}
@@ -312,6 +318,66 @@ const PHOTOS=(()=>{
     all:()=>run("readonly",(st,set)=>{const out={};set(out);st.openCursor().onsuccess=e=>{const c=e.target.result;if(c){out[c.key]=c.value;c.continue()}}})
   };
 })();
+// Claude, when the page runs inside a Claude viewer (null on Vercel or in a plain browser).
+let SAMPLE=null, aiImages=false, aiOff=false, aiBusy=false, aiCtl=null, aiNote="", aiTurns=[];
+const AI_RULES="You are the health helper inside \"Ozish kundaligi\", a personal weight-loss diary. The user writes in Uzbek: always answer in Uzbek (Latin script), plainly and briefly, as short paragraphs or a short list, no Markdown headings or bold. Base every statement about the user on the diary data below; never invent numbers, and say so when the data is missing. You may add general, well-established advice on nutrition, sleep, training and weight loss. Do not diagnose or recommend medicines; if something sounds serious (chest pain, fainting, a very fast or irregular pulse, sudden weight change) tell them to see a doctor.";
+function healthContext(){
+  const st=S.settings, lines=[];
+  lines.push("Today: "+today()+". Height "+st.heightCm+" cm, start weight "+st.startKg+" kg on "+st.start+", goal "+st.goalKg+" kg. Water goal 3-5 l/day, daily steps goal "+weekPlan(today()).steps+".");
+  lines.push("Weigh-ins (weekly): "+(entries().map(e=>e.d+" "+e.kg+"kg"+(e.waist?" waist "+e.waist+"cm":"")).join("; ")||"none"));
+  lines.push("Daily log, last 60 days (date | water l | habits done/total | gym muscle groups | bracelet):");
+  for(let i=59;i>=0;i--){const k=addDays(today(),-i);if(!S.days[k])continue;const d=S.days[k],sc=scoreOf(k),b=d.band||{};
+    const band=BAND.filter(([f])=>b[f]>0).map(([f,l,u])=>l+" "+b[f]+(u?" "+u:"")).join(", ");
+    lines.push(k+" | "+litres(d)+" | "+sc.done+"/"+sc.total+" | "+(isGym(d)?(mgNames(d)||"gym"):"-")+" | "+(band||"-"))}
+  return lines.join("\n");
+}
+function aiErrorText(e){
+  if(["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(e.code)){aiOff=true;return ""}
+  return ({rate_limited:"Hozir so'rov ko'p. Birozdan keyin qayta urinib ko'ring.",session_expired:"Claude hisobingizga qayta kiring.",refused:"Claude bu savolga javob bermadi. Savolni boshqacha yozib ko'ring.",prompt_too_large:"Ma'lumot juda ko'p. Qisqaroq savol bering."})[e.code]||"Javob olinmadi. Internetni tekshirib, qayta urinib ko'ring.";
+}
+function renderAiMsgs(){
+  const box=document.getElementById("aiMsgs");if(!box)return;
+  box.innerHTML=aiTurns.map(t=>`<div class="aimsg ${t.role==="user"?"u":"a"}">${esc(t.show||t.content||"O'ylayapman…")}</div>`).join("");
+  const stop=document.getElementById("aiStop"), note=document.getElementById("aiNote");
+  if(stop)stop.hidden=!aiBusy;
+  if(note)note.textContent=aiNote;
+  document.querySelectorAll("[data-ai],#aiSend").forEach(b=>{if(b.id!=="aiStop")b.disabled=aiBusy});
+}
+async function aiAsk(q,show){
+  if(!SAMPLE||aiBusy||!q.trim())return;
+  aiTurns.push({role:"user",content:q.trim(),show});
+  const ans={role:"assistant",content:""};aiTurns.push(ans);
+  aiBusy=true;aiNote="";aiCtl=new AbortController();renderAiMsgs();
+  const history=aiTurns.slice(0,-1).slice(-10).map(t=>({role:t.role,content:t.content}));
+  try{
+    const {text,truncated}=await SAMPLE([{role:"user",content:AI_RULES+"\n\nDIARY DATA\n"+healthContext()},...history],
+      {cache:false,signal:aiCtl.signal,onText:({text})=>{ans.content=text;renderAiMsgs()}});
+    ans.content=text;if(truncated)aiNote="Javob qisqartirildi. Savolni toraytirib bering.";
+  }catch(e){
+    ans.content=e.text||"";
+    if(e.code!=="cancelled")aiNote=aiErrorText(e);
+    if(!ans.content){aiTurns.pop();if(e.code!=="cancelled")aiTurns.pop()}
+  }finally{aiBusy=false;aiCtl=null}
+  if(aiOff)render();else renderAiMsgs();
+}
+function dataUrlToBlob(u){const [h,b]=u.split(","),bin=atob(b),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type:(h.match(/data:([^;]+)/)||[])[1]||"image/jpeg"})}
+async function readBandPhoto(btn){
+  const want=cur;btn.disabled=true;btn.textContent="O'qilmoqda…";
+  const note=document.getElementById("bandNote");
+  try{
+    const u=await PHOTOS.get(want);if(!u)throw {code:"no_photo"};
+    const r=await SAMPLE.json('This image is a screenshot from a fitness bracelet app (Xiaomi Mi Band / Mi Fitness / Zepp). Read the values for that day if they are visible. Reply with only a JSON object {"steps": number|null, "kcal": number|null, "min": number|null, "hr": number|null, "sleep": number|null}: steps = step count, kcal = calories burned (kcal), min = workout or activity duration in minutes, hr = average heart rate in bpm, sleep = sleep duration in hours as a decimal. Use null for anything not shown.',{images:[dataUrlToBlob(u)]});
+    const d=day(want);d.band=d.band||{};let n=0;
+    for(const [k] of BAND){const v=Number(r&&r[k]);if(v>0){d.band[k]=k==="sleep"?Math.round(v*10)/10:Math.round(v);n++}}
+    if(d.band.steps>=weekPlan(want).steps)d.c.steps=true;
+    save();if(want===cur&&tab==="zal")render();
+    const nn=document.getElementById("bandNote");if(nn)nn.textContent=n?n+" ta qiymat rasmdan yozildi. Tekshirib chiqing.":"Rasmda raqamlar topilmadi.";
+  }catch(e){
+    const t=e.code&&e.code!=="no_photo"&&e.code!=="invalid_json"?aiErrorText(e):"";
+    if(want===cur&&tab==="zal")render();
+    const nn=document.getElementById("bandNote");if(nn)nn.textContent=aiOff?"":(t||"Rasmni o'qib bo'lmadi. Raqamlarni qo'lda yozing.");
+  }
+}
 function shrinkImage(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),img=new Image();
   img.onload=()=>{const sc=Math.min(1,1400/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",0.8))};
   img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("image"))};img.src=u})}
@@ -533,6 +599,8 @@ function renderGym(){
         <button class="btn ghost" data-photo="add">${band.photo?"Rasmni almashtirish":"Rasm qo'shish"}</button>
         ${band.photo?`<button class="btn ghost" data-photo="del">${armedDel==="photo"?"O'chirilsinmi?":"Rasmni o'chirish"}</button>`:""}
       </div>
+      ${band.photo&&SAMPLE&&aiImages&&!aiOff?`<button class="btn ok wide" data-readphoto>Rasmdan raqamlarni o'qish</button>`:""}
+      <p class="small muted" id="bandNote" role="status"></p>
       <input type="file" id="photoFile" accept="image/*" hidden>
       <div class="bandgrid">${BAND.map(([k,l,u,st])=>`<div class="field"><label for="b-${k}">${l}${u?", "+u:""}</label><input id="b-${k}" data-band="${k}" type="number" inputmode="decimal" min="0" step="${st}" value="${band[k]!=null?band[k]:""}"></div>`).join("")}</div>
       <p class="small muted">Zaldan chiqqach bilaguzuk ilovasidan skrinshot olib qo'ying va asosiy raqamlarni yozing. Hisobot shu raqamlardan tuziladi.</p>
@@ -671,8 +739,19 @@ function renderReport(){
       <div class="barlbl" aria-hidden="true">${lbls}</div>
     </div>
     ${tips.length?`<div class="card tip"><h3>Sog'liq bo'yicha xulosa</h3><ul class="tips">${tips.map(t=>`<li class="small">${esc(t)}</li>`).join("")}</ul></div>`:""}
+    ${SAMPLE&&!aiOff?`<div class="card">
+      <div class="card-head"><h3>Claude bilan suhbat</h3><span class="small muted">sog'lig'ingiz haqida</span></div>
+      <p class="small muted">Claude oxirgi 60 kunlik yozuvlaringizni ko'rib javob beradi. Javoblar Claude hisobingiz limitidan foydalanadi.</p>
+      <div class="aimsgs" id="aiMsgs" aria-live="polite"></div>
+      <button class="btn ghost wide" data-ai="summary">Ma'lumotlarim bo'yicha xulosa</button>
+      <form class="aiform" id="aiForm"><input id="aiQ" type="text" placeholder="Savol yozing, masalan: nega vaznim tushmayapti?" aria-label="Savol" autocomplete="off"><button class="btn" id="aiSend" type="submit">Yuborish</button></form>
+      <button class="btn ghost" id="aiStop" data-aistop hidden>To'xtatish</button>
+      <p class="small muted" id="aiNote" role="status"></p>
+    </div>`:""}
+    ${window.claude?"":`<div class="card"><h3>Claude bilan suhbat</h3><p class="small">Ma'lumotlaringiz bo'yicha savol berish va bilaguzuk rasmini o'qitish ilovaning Claude versiyasida ishlaydi. Yozuvlarni o'tkazish uchun bu yerda ⚙️ → «Yuklab olish», u yerda «Tiklash»ni bosing.</p><a class="btn wide" style="display:grid;place-items:center;text-decoration:none" href="https://claude.ai/artifact/EabE3AMrZRSPGqBRFcs3We" target="_blank" rel="noopener">Claude versiyasini ochish</a></div>`}
     <p class="small muted">Bu maslahatlar faqat yozganlaringizga asoslanadi va shifokor ko'rigining o'rnini bosmaydi.</p>
   `;
+  if(SAMPLE&&!aiOff){renderAiMsgs();document.getElementById("aiForm").addEventListener("submit",ev=>{ev.preventDefault();const q=document.getElementById("aiQ");const v=q.value;q.value="";aiAsk(v)})}
 }
 
 /* ---------- render all ---------- */
@@ -711,6 +790,10 @@ document.querySelector("main").addEventListener("click",e=>{
     save();render();return}
   const tg=e.target.closest("[data-tabgo]");
   if(tg){showTab(tg.dataset.tabgo);return}
+  if(e.target.closest("[data-ai=summary]")){aiAsk("Oxirgi yozuvlarim asosida sog'lig'im va ozish jarayonim haqida qisqa xulosa ber: nima yaxshi ketyapti, nima yetishmayapti va keyingi haftaga 3 ta aniq maslahat.","Ma'lumotlarim bo'yicha xulosa");return}
+  if(e.target.closest("[data-aistop]")){if(aiCtl)aiCtl.abort();return}
+  const rp=e.target.closest("[data-readphoto]");
+  if(rp){readBandPhoto(rp);return}
   const rm=e.target.closest("[data-rep]");
   if(rm){repMode=rm.dataset.rep;repOff=0;render();return}
   const rn=e.target.closest("[data-repnav]");
@@ -767,6 +850,9 @@ document.getElementById("saveSettings").addEventListener("click",()=>{
 document.getElementById("exportBtn").addEventListener("click",async()=>{
   let photos={};try{photos=await PHOTOS.all()}catch(e){}
   const blob=new Blob([JSON.stringify(Object.assign({},S,{photos}))],{type:"application/json"});
+  // Inside a Claude viewer plain download links are blocked; ask the viewer's app to save instead.
+  const dl=window.claude&&window.claude.use?await window.claude.use("downloads").catch(()=>null):null;
+  if(dl){try{const r=await dl.save({filename:"kundalik-"+today()+".json",data:blob});document.getElementById("backupMsg").textContent=r&&r.status==="saved"?"Zaxira fayli saqlandi.":""}catch(e){document.getElementById("backupMsg").textContent="Fayl saqlanmadi."}return}
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);a.download="kundalik-"+today()+".json";
   document.body.appendChild(a);a.click();a.remove();
@@ -793,7 +879,7 @@ const standalone=()=>matchMedia("(display-mode: standalone)").matches||navigator
 const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 function updateInstall(){
   const box=document.getElementById("installBox"), btn=document.getElementById("installBtn"), hint=document.getElementById("installHint");
-  if(standalone()||!("serviceWorker" in navigator)){box.hidden=true;return}
+  if(standalone()||!("serviceWorker" in navigator)||window.claude){box.hidden=true;return}
   box.hidden=false;btn.hidden=!installEvt;
   hint.textContent=installEvt?"Kundalikni bosh ekranga qo'shing: internet bo'lmasa ham ishlaydi."
     :isIOS?"Safari'da «Ulashish» tugmasini bosing, so'ng «Bosh ekranga qo'shish»ni tanlang."
@@ -806,13 +892,21 @@ document.getElementById("installBtn").addEventListener("click",async()=>{
   installEvt.prompt();try{await installEvt.userChoice}catch(e){}
   installEvt=null;updateInstall();
 });
-if("serviceWorker" in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});
+if("serviceWorker" in navigator&&location.protocol.startsWith("http")&&!window.claude)navigator.serviceWorker.register("sw.js").catch(()=>{});
 
 /* ---------- boot ---------- */
 try{const t=localStorage.getItem(KEY+"-tab");if(t&&["bugun","vazn","zal","menyu","hisobot"].includes(t))tab=t}catch(e){}
 showTab(tab);
 setSync("local");
 
+(async()=>{
+  try{
+    if(!window.claude||!window.claude.use)return;
+    const s=await window.claude.use("sample");if(!s)return;
+    SAMPLE=s;try{const l=await s.limits();aiImages=!!(l&&l.images)}catch(e){}
+    if(tab==="hisobot"||tab==="zal")render();
+  }catch(e){}
+})();
 (async()=>{
   try{
     if(!window.claude||!window.claude.use){setSync("local");return}
