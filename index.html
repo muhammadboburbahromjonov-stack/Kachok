@@ -948,12 +948,15 @@ document.getElementById("saveSettings").addEventListener("click",()=>{
 /* backup */
 document.getElementById("exportBtn").addEventListener("click",async()=>{
   let photos={};try{photos=await PHOTOS.all()}catch(e){}
-  const blob=new Blob([JSON.stringify(Object.assign({},S,{photos}))],{type:"application/json"});
+  const json=JSON.stringify(Object.assign({},S,{photos})), fname="kundalik-"+today()+".json";
+  // Android app: the WebView cannot download blobs, so the app opens the system save dialog.
+  if(window.AndroidBridge&&window.AndroidBridge.saveFile){window.AndroidBridge.saveFile(fname,json);document.getElementById("backupMsg").textContent="Saqlash oynasida joyni tanlang.";return}
+  const blob=new Blob([json],{type:"application/json"});
   // Inside a Claude viewer plain download links are blocked; ask the viewer's app to save instead.
   const dl=window.claude&&window.claude.use?await window.claude.use("downloads").catch(()=>null):null;
-  if(dl){try{const r=await dl.save({filename:"kundalik-"+today()+".json",data:blob});document.getElementById("backupMsg").textContent=r&&r.status==="saved"?"Zaxira fayli saqlandi.":""}catch(e){document.getElementById("backupMsg").textContent="Fayl saqlanmadi."}return}
+  if(dl){try{const r=await dl.save({filename:fname,data:blob});document.getElementById("backupMsg").textContent=r&&r.status==="saved"?"Zaxira fayli saqlandi.":""}catch(e){document.getElementById("backupMsg").textContent="Fayl saqlanmadi."}return}
   const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);a.download="kundalik-"+today()+".json";
+  a.href=URL.createObjectURL(blob);a.download=fname;
   document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
   document.getElementById("backupMsg").textContent="Zaxira fayli yuklab olindi.";
@@ -978,7 +981,7 @@ const standalone=()=>matchMedia("(display-mode: standalone)").matches||navigator
 const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 function updateInstall(){
   const box=document.getElementById("installBox"), btn=document.getElementById("installBtn"), hint=document.getElementById("installHint");
-  if(standalone()||!("serviceWorker" in navigator)||window.claude){box.hidden=true;return}
+  if(standalone()||!("serviceWorker" in navigator)||window.claude||window.AndroidBridge){box.hidden=true;return}
   box.hidden=false;btn.hidden=!installEvt;
   hint.textContent=installEvt?"Kundalikni bosh ekranga qo'shing: internet bo'lmasa ham ishlaydi."
     :isIOS?"Safari'da «Ulashish» tugmasini bosing, so'ng «Bosh ekranga qo'shish»ni tanlang."
@@ -991,7 +994,7 @@ document.getElementById("installBtn").addEventListener("click",async()=>{
   installEvt.prompt();try{await installEvt.userChoice}catch(e){}
   installEvt=null;updateInstall();
 });
-if("serviceWorker" in navigator&&location.protocol.startsWith("http")&&!window.claude)navigator.serviceWorker.register("sw.js").catch(()=>{});
+if("serviceWorker" in navigator&&location.protocol.startsWith("http")&&!window.claude&&!window.AndroidBridge)navigator.serviceWorker.register("sw.js").catch(()=>{});
 
 /* ---------- boot ---------- */
 try{const t=localStorage.getItem(KEY+"-tab");if(t&&["bugun","vazn","zal","menyu","hisobot"].includes(t))tab=t}catch(e){}
