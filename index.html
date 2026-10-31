@@ -153,6 +153,14 @@ p{margin:0}
 .meal:first-child{border-top:0}
 .meal .tm{font-family:var(--font-display);font-size:13px;color:var(--accent);font-weight:500;padding-top:2px}
 .meal .mm{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.eat{justify-self:start;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:99px;border:2px solid var(--line);background:none;font-weight:700;font-size:13px;color:var(--muted);margin-top:4px}
+.eat svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.eat[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.alt{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:var(--warn-soft);font-size:13px}
+.alt span{min-width:0;overflow-wrap:anywhere}
+.ffrm{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:end}
+.ffrm .wide{grid-column:1/-1}
+.field select{width:100%;min-width:0;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);padding:0 8px}
 ul.plain{margin:0;padding-left:18px;display:grid;gap:6px}
 ol.plain{margin:0;padding-left:22px;display:grid;gap:6px}
 .kv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:14px}
@@ -325,10 +333,12 @@ function healthContext(){
   const st=S.settings, lines=[];
   lines.push("Today: "+today()+". Height "+st.heightCm+" cm, start weight "+st.startKg+" kg on "+st.start+", goal "+st.goalKg+" kg. Water goal 3-5 l/day, daily steps goal "+weekPlan(today()).steps+".");
   lines.push("Weigh-ins (weekly): "+(entries().map(e=>e.d+" "+e.kg+"kg"+(e.waist?" waist "+e.waist+"cm":"")).join("; ")||"none"));
-  lines.push("Daily log, last 60 days (date | water l | habits done/total | gym muscle groups | bracelet):");
+  lines.push("Coach menu (about 1850 kcal, 180 g protein a day): "+MEALS.map(m=>m.tag+": "+m.t+" ~"+m.kc+" kcal").join("; ")+".");
+  lines.push("Daily log, last 60 days (date | water l | habits done/total | gym muscle groups | bracelet | food):");
   for(let i=59;i>=0;i--){const k=addDays(today(),-i);if(!S.days[k])continue;const d=S.days[k],sc=scoreOf(k),b=d.band||{};
     const band=BAND.filter(([f])=>b[f]>0).map(([f,l,u])=>l+" "+b[f]+(u?" "+u:"")).join(", ");
-    lines.push(k+" | "+litres(d)+" | "+sc.done+"/"+sc.total+" | "+(isGym(d)?(mgNames(d)||"gym"):"-")+" | "+(band||"-"))}
+    const ft=foodTotals(d), food=[MEALS.filter(m=>(d.ate||{})[m.k]).map(m=>m.tag).join(", ")].filter(Boolean).concat((d.food||[]).map(f=>mealTag(f.meal)+": "+f.t+(f.kc>0?" "+f.kc+" kcal":""))).join("; ");
+    lines.push(k+" | "+litres(d)+" | "+sc.done+"/"+sc.total+" | "+(isGym(d)?(mgNames(d)||"gym"):"-")+" | "+(band||"-")+" | "+(food?"menu meals eaten: "+(MEALS.filter(m=>(d.ate||{})[m.k]).map(m=>m.tag).join(", ")||"none")+"; other: "+((d.food||[]).map(f=>mealTag(f.meal)+" "+f.t+(f.kc>0?" "+f.kc+" kcal":"")).join(", ")||"none")+" (~"+ft.kc+" kcal known)":"-"))}
   return lines.join("\n");
 }
 function aiErrorText(e){
@@ -381,6 +391,15 @@ async function readBandPhoto(btn){
 function shrinkImage(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),img=new Image();
   img.onload=()=>{const sc=Math.min(1,1400/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL("image/jpeg",0.8))};
   img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("image"))};img.src=u})}
+// Food per day: d.ate marks menu meals eaten; d.food holds what was eaten instead, typed in by hand.
+function foodTotals(d){
+  const ate=d.ate||{}, food=d.food||[];
+  let kc=0,pr=0,unknown=0;
+  MEALS.forEach(m=>{if(ate[m.k]){kc+=m.kc;pr+=m.pr}});
+  food.forEach(f=>{if(f.kc>0)kc+=f.kc;else unknown++;if(f.pr>0)pr+=f.pr});
+  return {kc,pr,unknown,menu:MEALS.filter(m=>ate[m.k]).length,extra:food.length};
+}
+const mealTag=k=>k==="other"?"Boshqa":((MEALS.find(m=>m.k===k)||{}).tag||k);
 // Water is marked in whole litres (d.l); older days counted 250 ml glasses in d.w.
 function litres(d){return d.l!=null?d.l:Math.min(5,Math.round((d.w||0)/4))}
 function save(){
@@ -615,14 +634,15 @@ function renderGym(){
 
 /* ---------- render: menu ---------- */
 const MEALS=[
-  {k:"breakfast",tag:"Nonushta",t:"4 ta tuxum oqi va 2 ta sarig'i",d:"Qaynatilgan yoki zaytun yog'ida omlet. Yoniga 50 g jo'xori bo'tqasi suvda, ustiga 2 osh qoshiq zaytun yoki kokos yog'i.",m:"~600 kkal · 27 g oqsil"},
-  {k:"lunch",tag:"Tushlik",t:"200 g tovuq ko'kragi yoki terisiz son",d:"Salat: bodring, pomidor, ko'kat, ichiga 2 qoshiq zaytun yog'i.",m:"~550 kkal · 50 g oqsil"},
-  {k:"snack",tag:"Tamaddi",t:"Protein: whey izolyat",d:"1 porsiya, suvga aralashtirib.",m:"~110 kkal · 25 g oqsil"},
-  {k:"dinner",tag:"Kechki ovqat",t:"200 g mol go'shti yoki baliq",d:"Parhez usulda pishirilgan (qaynatish, dimlash, duxovka). Yangi salat: bodring, pomidor, ko'kat.",m:"~400 kkal · 50 g oqsil"},
-  {k:"night",tag:"22:30",t:"2 ta qaynatilgan tuxum oqi va kokteyl",d:"1 porsiya whey izolyat va 5 g arginin, 250 ml suvga aralashtirib.",m:"~170 kkal · 32 g oqsil"}
+  {k:"breakfast",kc:600,pr:27,tag:"Nonushta",t:"4 ta tuxum oqi va 2 ta sarig'i",d:"Qaynatilgan yoki zaytun yog'ida omlet. Yoniga 50 g jo'xori bo'tqasi suvda, ustiga 2 osh qoshiq zaytun yoki kokos yog'i.",m:"~600 kkal · 27 g oqsil"},
+  {k:"lunch",kc:550,pr:50,tag:"Tushlik",t:"200 g tovuq ko'kragi yoki terisiz son",d:"Salat: bodring, pomidor, ko'kat, ichiga 2 qoshiq zaytun yog'i.",m:"~550 kkal · 50 g oqsil"},
+  {k:"snack",kc:110,pr:25,tag:"Tamaddi",t:"Protein: whey izolyat",d:"1 porsiya, suvga aralashtirib.",m:"~110 kkal · 25 g oqsil"},
+  {k:"dinner",kc:400,pr:50,tag:"Kechki ovqat",t:"200 g mol go'shti yoki baliq",d:"Parhez usulda pishirilgan (qaynatish, dimlash, duxovka). Yangi salat: bodring, pomidor, ko'kat.",m:"~400 kkal · 50 g oqsil"},
+  {k:"night",kc:170,pr:32,tag:"22:30",t:"2 ta qaynatilgan tuxum oqi va kokteyl",d:"1 porsiya whey izolyat va 5 g arginin, 250 ml suvga aralashtirib.",m:"~170 kkal · 32 g oqsil"}
 ];
 function renderMenu(){
-  const el=document.getElementById("tab-menyu");
+  const el=document.getElementById("tab-menyu"), d=peekDay(cur), ate=d.ate||{}, tot=foodTotals(d);
+  const altRows=k=>(d.food||[]).filter(f=>f.meal===k).map(f=>`<div class="alt"><span>${k==="other"?"":"O'rniga: "}<b>${esc(f.t)}</b>${f.kc>0?" · "+f.kc+" kkal":""}${f.pr>0?" · "+f.pr+" g oqsil":""}</span><button class="del${armedDel==="f"+f.id?" arm":""}" data-fdel="${f.id}">${armedDel==="f"+f.id?"O'chirilsinmi?":"O'chirish"}</button></div>`).join("");
   const shop=SHOP.map(([g,xs],gi)=>`<div class="stack" style="gap:4px"><span class="eyebrow">${g}</span><div class="checks">${xs.map((x,i)=>{const id="c"+gi+"-"+i;return `<button class="chk" data-shop="${id}" aria-pressed="${!!S.shop[id]}"><span class="box">${CHECK}</span><span class="t">${x}</span></button>`}).join("")}</div></div>`).join("");
   el.innerHTML=`
     <div class="card">
@@ -635,7 +655,30 @@ function renderMenu(){
       <p class="small muted">Kaloriya va oqsil taxminiy hisob. Go'sht og'irligi pishgan holatda.</p>
     </div>
     <div class="card">
-      <div>${MEALS.map(m=>`<div class="meal">${foodArt(m.k)}<div style="display:grid;gap:3px;min-width:0"><span class="tag">${m.tag}</span><b>${m.t}</b><span class="small">${m.d}</span><span class="mm">${m.m}</span></div></div>`).join("")}</div>
+      <div class="card-head"><h3>${cur===today()?"Bugun":esc(longDate(cur))} nima yedingiz?</h3><span class="pill ${tot.kc>1850?"warn":"ok"}">${fmtInt(tot.kc)} / 1850 kkal</span></div>
+      <div class="kv">
+        <span>Oqsil</span><b>${tot.pr} / 180 g</b>
+        <span>Menyudan</span><b>${tot.menu} / ${MEALS.length} ovqat</b>
+        <span>Boshqa ovqat</span><b>${tot.extra} ta</b>
+      </div>
+      ${tot.unknown?`<p class="small muted">${tot.unknown} ta ovqatning kaloriyasi yozilmagan, u jamiga kirmadi.</p>`:""}
+    </div>
+    <div class="card">
+      <div>${MEALS.map(m=>`<div class="meal">${foodArt(m.k)}<div style="display:grid;gap:3px;min-width:0"><span class="tag">${m.tag}</span><b>${m.t}</b><span class="small">${m.d}</span><span class="mm">${m.m}</span>
+        <button class="eat" data-eat="${m.k}" aria-pressed="${!!ate[m.k]}">${CHECK}${ate[m.k]?"Yedim":"Yedim deb belgilash"}</button>
+        ${altRows(m.k)}</div></div>`).join("")}</div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Boshqa ovqat qo'shish</h3><span class="small muted">menyudagini yeya olmasangiz</span></div>
+      <form class="ffrm" id="fForm">
+        <div class="field wide"><label for="fName">Nima yedingiz</label><input id="fName" type="text" maxlength="80" placeholder="masalan: 1 kosa sho'rva, 1 ta non" required></div>
+        <div class="field"><label for="fMeal">Qachon</label><select id="fMeal">${MEALS.map(m=>`<option value="${m.k}">${m.tag}</option>`).join("")}<option value="other">Boshqa</option></select></div>
+        <div class="field"><label for="fKc">Kaloriya</label><input id="fKc" type="number" inputmode="numeric" min="0" max="5000" placeholder="kkal"></div>
+        <div class="field"><label for="fPr">Oqsil</label><input id="fPr" type="number" inputmode="numeric" min="0" max="500" placeholder="g"></div>
+        <button class="btn wide" type="submit">Qo'shish</button>
+      </form>
+      ${altRows("other")}
+      <p class="small muted">Kaloriyani bilmasangiz, bo'sh qoldiring. Qo'shilgan ovqat tanlangan mahal ostida «O'rniga» deb chiqadi.</p>
     </div>
     <div class="card">
       <div class="meal" style="border-top:0;padding-top:0">${foodArt("water")}<div style="display:grid;gap:3px"><span class="tag">Suv</span><b>Kuniga kamida 3, ko'pi bilan 5 litr</b><span class="small muted">«Bugun» bo'limida litrlab belgilang.</span></div></div>
@@ -672,6 +715,14 @@ function renderMenu(){
       </ul>
     </div>
   `;
+  document.getElementById("fForm").addEventListener("submit",ev=>{
+    ev.preventDefault();
+    const t=document.getElementById("fName").value.trim();if(!t)return;
+    const kc=parseInt(document.getElementById("fKc").value,10), pr=parseInt(document.getElementById("fPr").value,10);
+    const dd=day(cur);dd.food=dd.food||[];
+    dd.food.push({id:Date.now().toString(36),t:t.slice(0,80),meal:document.getElementById("fMeal").value,kc:kc>0?kc:0,pr:pr>0?pr:0});
+    save();renderMenu();
+  });
 }
 
 /* ---------- render: report ---------- */
@@ -788,6 +839,13 @@ document.querySelector("main").addEventListener("click",e=>{
   if(mb){const d=day(cur),k=mb.dataset.mg,a=(d.mg||[]).filter(x=>x!==k);if(a.length===(d.mg||[]).length)a.push(k);
     if(a.length){d.mg=a;d.gym=0;d.t="gym";d.c.train=true}else{delete d.mg;delete d.gym;d.c.train=false}
     save();render();return}
+  const eb=e.target.closest("[data-eat]");
+  if(eb){const d=day(cur),k=eb.dataset.eat;d.ate=d.ate||{};const wasAll=MEALS.every(m=>d.ate[m.k]);
+    if(d.ate[k])delete d.ate[k];else d.ate[k]=true;
+    const all=MEALS.every(m=>d.ate[m.k]);if(all)d.c.menu=true;else if(wasAll)d.c.menu=false;
+    save();render();return}
+  const fd=e.target.closest("[data-fdel]");
+  if(fd){const k="f"+fd.dataset.fdel;if(armedDel===k){const d=day(cur);d.food=(d.food||[]).filter(f=>f.id!==fd.dataset.fdel);armedDel=null;save()}else armedDel=k;render();return}
   const tg=e.target.closest("[data-tabgo]");
   if(tg){showTab(tg.dataset.tabgo);return}
   if(e.target.closest("[data-ai=summary]")){aiAsk("Oxirgi yozuvlarim asosida sog'lig'im va ozish jarayonim haqida qisqa xulosa ber: nima yaxshi ketyapti, nima yetishmayapti va keyingi haftaga 3 ta aniq maslahat.","Ma'lumotlarim bo'yicha xulosa");return}
